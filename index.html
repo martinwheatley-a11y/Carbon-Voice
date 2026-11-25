@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carbon Voice Notes</title>
+  <!-- Tailwind CSS CDN for sleek Carbon styling inside Preview & Google Apps Script -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Inter & JetBrains Mono fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    }
+    /* Subtle custom scrollbar for compact 300px Docs sidebar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #d4d4d8;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a1a1aa;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-zinc-100 text-zinc-900 antialiased selection:bg-zinc-200">
+
+  <!-- ===================================================================== -->
+  <!-- 1. UPFRONT MICROPHONE PERMISSION GATE                                 -->
+  <!-- ===================================================================== -->
+  <main id="permissionGate" class="min-h-screen flex items-center justify-center p-4">
+    <!-- Checking State -->
+    <div id="gateChecking" class="bg-white p-6 rounded-2xl border border-zinc-200 text-center max-w-xs w-full space-y-3 shadow-sm">
+      <div class="w-10 h-10 bg-zinc-100 border border-zinc-200 rounded-xl flex items-center justify-center mx-auto">
+        <svg class="w-4 h-4 text-zinc-600 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" x2="12" y1="19" y2="22"></line>
+        </svg>
+      </div>
+      <div class="space-y-1">
+        <h2 class="text-sm font-semibold tracking-tight">Initializing Audio</h2>
+        <p class="text-zinc-500 text-xs leading-relaxed">
+          Allow microphone access in your browser prompt to open Carbon Voice Notes.
+        </p>
+      </div>
+    </div>
+
+    <!-- Denied / Sidebar Iframe Blocked State -->
+    <div id="gateBlocked" class="hidden bg-white p-5 rounded-2xl border border-zinc-200 text-center max-w-sm w-full space-y-4 shadow-sm">
+      <div class="w-10 h-10 bg-red-50 border border-red-200 rounded-xl flex items-center justify-center mx-auto">
+        <svg class="w-4 h-4 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" x2="12" y1="8" y2="12"></line>
+          <line x1="12" x2="12.01" y1="16" y2="16"></line>
+        </svg>
+      </div>
+      <div class="space-y-1.5">
+        <h2 class="text-sm font-semibold tracking-tight">Microphone Restricted</h2>
+        <p id="gateErrorText" class="text-zinc-500 text-xs leading-relaxed">
+          Microphone access was blocked by the browser or parent iframe.
+        </p>
+      </div>
+
+      <!-- Pop-out Companion Button (Appears if Google Docs Sidebar blocks iframe mic) -->
+      <div id="popoutFallbackBox" class="hidden bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-left space-y-2">
+        <p class="text-[11px] text-zinc-600 leading-relaxed">
+          <strong class="text-zinc-900">Google Docs Sidebar Tip:</strong> Google Docs often blocks microphones inside sidebar iframes. Pop out the floating recorder window—it stays linked to your active Doc!
+        </p>
+        <button id="btnPopoutFromGate" type="button" class="w-full py-2 px-3 bg-zinc-900 text-white rounded-lg text-xs font-medium hover:bg-zinc-800 transition-colors flex items-center justify-center gap-1.5">
+          <span>Pop Out Floating Recorder</span>
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" x2="21" y1="14" y2="3"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <button id="btnRetryMic" type="button" class="w-full py-2 px-3 bg-zinc-900 text-white rounded-lg text-xs font-medium hover:bg-zinc-800 transition-colors flex items-center justify-center gap-1.5">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+            <path d="M21 3v5h-5"></path>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+            <path d="M8 16H3v5"></path>
+          </svg>
+          <span>Retry Microphone</span>
+        </button>
+
+        <button id="btnOpenSetupFromGate" type="button" class="w-full py-1.5 px-3 bg-white border border-zinc-200 text-zinc-600 rounded-lg text-xs font-medium hover:bg-zinc-50 transition-colors">
+          View No-SDK Apps Script Setup
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- 1B. GOOGLE DOCS SIDEBAR HUB (AUTO-ACTIVATES INSIDE DOCS SIDEBAR)      -->
+  <!-- ===================================================================== -->
+  <aside id="docsSidebarHub" class="hidden min-h-screen px-3 py-3.5 space-y-3">
+    <!-- Sidebar Header -->
+    <div class="flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 min-w-0">
+        <div class="w-7 h-7 bg-zinc-900 text-white rounded-lg flex items-center justify-center shrink-0">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" x2="12" y1="19" y2="22"></line>
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-xs font-semibold tracking-tight text-zinc-900 truncate">Carbon Docs Inserter</h1>
+          <p id="sidebarDocName" class="text-[11px] text-zinc-500 truncate">Connected to active Google Doc</p>
+        </div>
+      </div>
+      <span class="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 shrink-0">Ready</span>
+    </div>
+
+    <!-- Primary Card: Drag & Drop .webm / Audio File to Drive + Insert at Cursor -->
+    <section class="bg-white border border-zinc-200 rounded-2xl p-3 space-y-2.5 shadow-sm">
+      <div
+        id="sidebarDropZone"
+        class="border-2 border-dashed border-zinc-300 hover:border-zinc-900 bg-zinc-50 hover:bg-zinc-100/70 rounded-xl p-4 text-center cursor-pointer transition-colors space-y-1.5"
+      >
+        <input id="sidebarFileInput" type="file" accept="audio/*,.webm,.m4a,.mp3,.ogg,.wav" class="hidden" />
+        <div class="w-8 h-8 bg-white border border-zinc-200 rounded-lg flex items-center justify-center mx-auto text-zinc-700">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" x2="12" y1="3" y2="15"></line>
+          </svg>
+        </div>
+        <p id="sidebarSelectedFileLabel" class="text-xs font-medium text-zinc-800 break-all">
+          Drop recorded <code class="font-mono">.webm</code> here or click to pick
+        </p>
+        <p class="text-[11px] text-zinc-500 leading-snug">
+          Uploads to your Google Drive &amp; inserts a Smart-Chip link at your Doc cursor.
+        </p>
+      </div>
+
+      <!-- Optional Transcript Paste -->
+      <textarea
+        id="sidebarTranscriptInput"
+        rows="2"
+        maxlength="20000"
+        placeholder="Optional: paste copied transcript here to insert below the chip..."
+        class="w-full text-xs text-zinc-800 bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 focus:outline-none focus:border-zinc-900 resize-y placeholder:text-zinc-400"
+      ></textarea>
+
+      <!-- Domain Sharing Toggle (Default ON for .ac.uk / .edu) -->
+      <label class="flex items-start gap-2 text-[11px] text-zinc-600 cursor-pointer select-none">
+        <input id="sidebarShareDomain" type="checkbox" checked class="mt-0.5 rounded border-zinc-300 text-zinc-900 focus:ring-0" />
+        <span class="leading-snug">Allow people in my domain (with link) to play this audio chip</span>
+      </label>
+
+      <button
+        id="btnSidebarUpload"
+        type="button"
+        disabled
+        class="w-full py-2 px-3 rounded-xl text-xs font-semibold bg-zinc-200 text-zinc-400 cursor-not-allowed transition-colors"
+      >
+        Select or drop an audio file above
+      </button>
+
+      <div id="sidebarStatusBanner" class="hidden text-[11px] font-mono px-2.5 py-2 rounded-xl break-words"></div>
+    </section>
+
+    <!-- Optional 1-Click External HTTPS Recorder Relay (No /exec Web App Needed!) -->
+    <section class="bg-white border border-zinc-200 rounded-2xl p-3 space-y-2 shadow-sm">
+      <button id="btnToggleRelayConfig" type="button" class="w-full flex items-center justify-between text-left text-xs font-medium text-zinc-700">
+        <span>1-Click Floating Mic Relay (Optional)</span>
+        <span id="relayToggleChevron" class="text-zinc-400 font-mono text-[10px]">Show</span>
+      </button>
+
+      <div id="relayConfigBody" class="hidden pt-1 space-y-2 border-t border-zinc-100">
+        <p class="text-[11px] text-zinc-500 leading-relaxed">
+          Google blocks mics on <code class="font-mono">script.google.com</code>. If you host <code class="font-mono">Index.html</code> on GitHub Pages or Netlify, paste its HTTPS URL once to beam recordings straight into this sidebar:
+        </p>
+        <div class="flex gap-1.5">
+          <input
+            id="externalRecorderUrlInput"
+            type="url"
+            placeholder="https://your-site.netlify.app"
+            class="flex-1 min-w-0 text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-zinc-900"
+          />
+          <button id="btnSaveExternalUrl" type="button" class="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-lg text-xs font-medium shrink-0">
+            Save
+          </button>
+        </div>
+        <button
+          id="btnLaunchExternalPopup"
+          type="button"
+          class="w-full py-2 px-3 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+        >
+          <span>Launch Floating Mic Window</span>
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" x2="21" y1="14" y2="3"></line>
+          </svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Inserted Notes Log -->
+    <div id="sidebarHistoryList" class="space-y-1.5"></div>
+  </aside>
+
+  <!-- ===================================================================== -->
+  <!-- 2. MAIN CARBON RECORDER WORKSPACE                                     -->
+  <!-- ===================================================================== -->
+  <div id="appWorkspace" class="hidden px-3 sm:px-4 py-4 sm:py-5">
+    <div class="max-w-2xl mx-auto space-y-3.5">
+
+      <!-- Header -->
+      <header class="flex flex-wrap items-center justify-between gap-2 pb-0.5">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-7 h-7 bg-zinc-900 text-white rounded-lg flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" x2="12" y1="19" y2="22"></line>
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <h1 class="text-sm font-semibold tracking-tight text-zinc-900">Carbon Voice Notes</h1>
+              <span id="envBadge" class="inline-flex items-center text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-zinc-200/80 text-zinc-700">
+                32k Opus
+              </span>
+            </div>
+            <p id="linkedDocSubtitle" class="text-[11px] text-zinc-500 leading-tight truncate">
+              Zero-SDK browser &amp; personal Google Apps Script bundle
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <!-- Pop-out button if inside Apps Script sidebar -->
+          <button id="btnHeaderPopout" type="button" title="Open in floating window" class="hidden items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 transition-colors">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" x2="21" y1="14" y2="3"></line>
+            </svg>
+            <span class="hidden sm:inline">Pop Out</span>
+          </button>
+
+          <!-- Toggle No-SDK Apps Script Setup Guide -->
+          <button id="btnToggleSetup" type="button" class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
+            <svg class="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="4 17 10 11 4 5"></polyline>
+              <line x1="12" x2="20" y1="19" y2="19"></line>
+            </svg>
+            <span>No-SDK Setup</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- ================================================================= -->
+      <!-- COLLAPSIBLE NO-SDK APPS SCRIPT SETUP DRAWER                       -->
+      <!-- ================================================================= -->
+      <section id="setupDrawer" class="hidden bg-zinc-900 text-zinc-100 rounded-2xl p-4 border border-zinc-800 space-y-3 text-xs">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h2 class="text-sm font-semibold text-white">Personal No-SDK Google Docs Setup (2 Mins)</h2>
+            <p class="text-zinc-400 text-[11px] mt-0.5">
+              Run this privately inside your own Google Docs—no Google Cloud Console or Marketplace SDK needed.
+            </p>
+          </div>
+          <button id="btnCloseSetup" type="button" aria-label="Close setup drawer" class="p-1 text-zinc-400 hover:text-white rounded">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" x2="6" y1="6" y2="18"></line>
+              <line x1="6" x2="18" y1="6" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex flex-wrap items-center gap-1 bg-zinc-800/80 p-1 rounded-lg w-fit">
+          <button type="button" data-tab="steps" class="setup-tab px-2.5 py-1 rounded-md text-[11px] font-medium bg-zinc-100 text-zinc-900 transition-colors">
+            1. Quick Steps
+          </button>
+          <button type="button" data-tab="codegs" class="setup-tab px-2.5 py-1 rounded-md text-[11px] font-medium text-zinc-400 hover:text-zinc-200 transition-colors">
+            2. Copy Code.gs
+          </button>
+        </div>
+
+        <!-- Tab 1: Steps -->
+        <div id="tabSteps" class="bg-zinc-950/70 border border-zinc-800 rounded-xl p-3 space-y-2 text-zinc-300 leading-relaxed">
+          <p><strong class="text-white">Step 1:</strong> Open your Google Doc &rarr; click <strong class="text-white">Extensions &gt; Apps Script</strong> (no Web App deployment needed!).</p>
+          <p><strong class="text-white">Step 2:</strong> Replace <code class="font-mono text-zinc-100">Code.gs</code> with the updated script in tab 2, and paste this updated file into <code class="font-mono text-zinc-100">Index.html</code>. Hit <strong class="text-white">Save</strong>.</p>
+          <p><strong class="text-white">Step 3:</strong> Reload your Google Doc and click <strong class="text-white">Carbon Voice &gt; Open Voice Sidebar</strong>.</p>
+          <p><strong class="text-white">Step 4:</strong> Record right here in this browser tab, click <strong class="text-white">.webm</strong>, and drag the downloaded file straight into the Google Docs Sidebar &mdash; it uploads to your College Drive and inserts the link at your cursor (hover link &rarr; click <strong class="text-white">Chip</strong>)!</p>
+        </div>
+
+        <!-- Tab 2: Code.gs -->
+        <div id="tabCodeGs" class="hidden space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] text-zinc-400 font-mono">Code.gs (No-SDK Personal Script)</span>
+            <button id="btnCopyCodeGs" type="button" class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-[11px] font-medium transition-colors">
+              <span id="copyCodeGsLabel">Copy Code.gs</span>
+            </button>
+          </div>
+          <pre id="codeGsBlock" class="bg-zinc-950 border border-zinc-800 rounded-xl p-3 overflow-x-auto font-mono text-[11px] text-zinc-300 max-h-60"></pre>
+        </div>
+      </section>
+
+      <!-- Inline Error Banner -->
+      <div id="errorBanner" class="hidden bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-xl items-center justify-between gap-2 text-xs">
+        <span id="errorBannerText" class="font-medium"></span>
+        <button id="btnDismissError" type="button" class="p-1 text-red-500 hover:text-red-700 rounded" aria-label="Dismiss error">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" x2="6" y1="6" y2="18"></line>
+            <line x1="6" x2="18" y1="6" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- PRIMARY RECORDER CARD                                             -->
+      <!-- ================================================================= -->
+      <section class="bg-white border border-zinc-200 rounded-2xl p-3.5 sm:p-4 space-y-3 shadow-sm">
+        <!-- Step 1: Required Title Input -->
+        <div class="relative">
+          <input
+            id="titleInput"
+            type="text"
+            maxlength="120"
+            placeholder="1. Name this note to unlock recording..."
+            aria-label="Recording title"
+            class="w-full font-medium text-zinc-900 text-sm bg-zinc-50 border border-zinc-200 rounded-xl px-3.5 py-2 pr-14 focus:border-zinc-900 focus:bg-white focus:outline-none transition-colors placeholder:text-zinc-400 placeholder:font-normal disabled:opacity-60"
+          />
+          <span id="titleCounter" class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-zinc-400 pointer-events-none">
+            0/120
+          </span>
+        </div>
+
+        <!-- Step 2: Compact Control Bar + Live Waveform + Monotonic Timer -->
+        <div class="flex items-center gap-2.5 bg-zinc-50 border border-zinc-200/80 rounded-xl p-2.5">
+          <div class="flex items-center gap-1.5 shrink-0">
+            <!-- Record / Stop Button -->
+            <button
+              id="btnRecordToggle"
+              type="button"
+              disabled
+              title="Enter a title first"
+              aria-label="Start recording"
+              class="flex items-center justify-center w-10 h-10 rounded-xl transition-all active:scale-95 bg-zinc-200 text-zinc-400 cursor-not-allowed"
+            >
+              <!-- Mic Icon -->
+              <svg id="iconMic" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" x2="12" y1="19" y2="22"></line>
+              </svg>
+              <!-- Stop Square Icon -->
+              <svg id="iconStop" class="hidden w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+              </svg>
+            </button>
+
+            <!-- Pause / Resume Button -->
+            <button
+              id="btnPauseToggle"
+              type="button"
+              title="Pause recording"
+              aria-label="Pause recording"
+              class="hidden items-center justify-center w-10 h-10 rounded-xl bg-white border border-zinc-200 text-zinc-800 hover:bg-zinc-100 transition-colors active:scale-95"
+            >
+              <svg id="iconPause" class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+                <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+              </svg>
+              <svg id="iconResume" class="hidden w-3.5 h-3.5 fill-current ml-0.5" viewBox="0 0 24 24">
+                <polygon points="6 4 20 12 6 20 6 4"></polygon>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Canvas Waveform Strip -->
+          <div id="canvasContainer" class="flex-1 h-10 bg-white rounded-lg border border-zinc-200/70 overflow-hidden relative min-w-0">
+            <canvas id="waveformCanvas" class="w-full h-full block"></canvas>
+            <div id="canvasHint" class="absolute inset-0 flex items-center justify-center px-2 text-zinc-400 text-[11px] truncate pointer-events-none">
+              Enter a title above
+            </div>
+            <div id="pausedBadge" class="hidden absolute inset-0 items-center justify-center bg-white/85 pointer-events-none">
+              <span class="text-[10px] font-mono uppercase tracking-wider font-semibold text-zinc-600">Paused</span>
+            </div>
+          </div>
+
+          <!-- Monospace Elapsed Clock -->
+          <div class="flex items-center gap-1.5 pl-1 pr-1.5 shrink-0">
+            <span id="statusDot" class="w-2 h-2 rounded-full bg-zinc-300"></span>
+            <span id="timerDisplay" class="font-mono text-sm font-semibold tabular-nums text-zinc-400">00:00</span>
+          </div>
+        </div>
+
+        <!-- Live Transcript Box -->
+        <div class="bg-zinc-50 rounded-xl p-3 border border-zinc-200/80 min-h-[68px] max-h-36 overflow-y-auto">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <span class="text-[10px] font-mono font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1">
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" x2="8" y1="13" y2="13"></line>
+                <line x1="16" x2="8" y1="17" y2="17"></line>
+              </svg>
+              Live Transcript
+            </span>
+            <span id="speechUnsupportedBadge" class="hidden text-[10px] font-mono text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+              Speech API: Chrome/Edge
+            </span>
+          </div>
+          <p class="text-zinc-700 leading-relaxed text-xs sm:text-sm">
+            <span id="liveFinalText"></span>
+            <span id="liveInterimText" class="text-zinc-400 italic"></span>
+            <span id="livePlaceholder" class="text-zinc-400">Speech transcribes locally as you speak...</span>
+          </p>
+        </div>
+
+        <!-- Footer + Sharing Option (When connected to Google Apps Script) -->
+        <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-400 px-0.5">
+          <span>In-memory session • Zero external servers</span>
+          <label id="sharingOptionWrap" class="hidden items-center gap-1.5 text-zinc-600 cursor-pointer select-none">
+            <input id="shareDomainCheckbox" type="checkbox" class="rounded border-zinc-300 text-zinc-900 focus:ring-0" />
+            <span class="text-[11px]">Share link with my domain/anyone with link</span>
+          </label>
+          <span id="maxCapLabel" class="font-mono text-[10px]">Max 15:00</span>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- SESSION CAPTURES LIST                                             -->
+      <!-- ================================================================= -->
+      <section id="recordingsSection" class="hidden space-y-2.5">
+        <div class="flex items-center justify-between px-0.5">
+          <h2 class="text-xs font-mono uppercase tracking-wider font-semibold text-zinc-600 flex items-center gap-1.5">
+            <span>Session Captures</span>
+            <span id="recordingsCount" class="bg-zinc-200 text-zinc-800 px-1.5 py-0.5 rounded text-[10px]">0</span>
+          </h2>
+          <span id="recordingsHint" class="text-[11px] text-zinc-500">
+            Upload to Drive &rarr; paste link in Doc + Tab for Smart Chip
+          </span>
+        </div>
+        <div id="recordingsList" class="space-y-2.5"></div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- SELF-CONTAINED CARBON ENGINE + GOOGLE APPS SCRIPT BRIDGE              -->
+  <!-- ===================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      // --- Constants ---
+      const MAX_TITLE_LENGTH = 120;
+      const MAX_TRANSCRIPT_LENGTH = 20000;
+      const MAX_RECORDING_SECONDS = 900; // 15 mins (~3.6 MB at 32 kbps Opus)
+      const MAX_UPLOAD_BYTES = 18 * 1024 * 1024; // Safe cap under Apps Script's google.script.run limit
+      const VOICE_BITS_PER_SECOND = 32000;
+
+      // --- Personal No-SDK Code.gs Template (Zero /exec Web App Required!) ---
+      const PERSONAL_CODE_GS = [
+        '/**',
+        ' * Carbon Voice Notes — Personal No-SDK Google Docs Sidebar Script',
+        ' * Zero Web App (/exec) deployment required — immune to Drive /exec errors!',
+        ' */',
+        'function onOpen() {',
+        '  DocumentApp.getUi()',
+        '    .createMenu("Carbon Voice")',
+        '    .addItem("Open Voice Sidebar", "showRecorderSidebar")',
+        '    .addToUi();',
+        '}',
+        '',
+        'function showRecorderSidebar() {',
+        '  var html = HtmlService.createHtmlOutputFromFile("Index")',
+        '    .setTitle("Carbon Voice Notes")',
+        '    .setWidth(320);',
+        '  DocumentApp.getUi().showSidebar(html);',
+        '}',
+        '',
+        'function getSidebarContext() {',
+        '  var ctx = { docId: "", docTitle: "", externalRecorderUrl: "" };',
+        '  try {',
+        '    var doc = DocumentApp.getActiveDocument();',
+        '    if (doc) { ctx.docId = doc.getId(); ctx.docTitle = doc.getName(); }',
+        '  } catch (e) {}',
+        '  try {',
+        '    ctx.externalRecorderUrl = PropertiesService.getUserProperties().getProperty("EXTERNAL_RECORDER_URL") || "";',
+        '  } catch (e) {}',
+        '  return ctx;',
+        '}',
+        '',
+        'function saveExternalRecorderUrl(url) {',
+        '  var clean = String(url || "").trim();',
+        '  if (clean && !/^https:\\/\\//i.test(clean) && !/^http:\\/\\/localhost/i.test(clean)) {',
+        '    throw new Error("URL must start with https:// or http://localhost");',
+        '  }',
+        '  PropertiesService.getUserProperties().setProperty("EXTERNAL_RECORDER_URL", clean);',
+        '  return { saved: clean };',
+        '}',
+        '',
+        '/** Uploads audio note to Google Drive & inserts Smart-Chip-ready link at Doc cursor */',
+        'function uploadAndInsertAudioNote(payload) {',
+        '  if (!payload || !payload.base64Data) throw new Error("Missing audio data.");',
+        '  var safeName = String(payload.filename || "voice_note.webm").replace(/[^a-zA-Z0-9._-]/g, "_");',
+        '  var mimeType = String(payload.mimeType || "audio/webm").split(";")[0];',
+        '  var blob = Utilities.newBlob(Utilities.base64Decode(payload.base64Data), mimeType, safeName);',
+        '',
+        '  var file = DriveApp.createFile(blob);',
+        '  if (payload.transcript) file.setDescription(String(payload.transcript));',
+        '  if (payload.shareWithLink) {',
+        '    try {',
+        '      file.setSharing(DriveApp.Access.DOMAIN_WITH_LINK, DriveApp.Permission.VIEW);',
+        '    } catch (e) {',
+        '      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);',
+        '    }',
+        '  }',
+        '  var fileUrl = file.getUrl();',
+        '',
+        '  var doc = payload.docId ? DocumentApp.openById(payload.docId) : DocumentApp.getActiveDocument();',
+        '  if (doc) {',
+        '    var cursor = doc.getCursor ? doc.getCursor() : null;',
+        '    if (cursor) {',
+        '      var el = cursor.insertText(fileUrl);',
+        '      if (el) el.setLinkUrl(fileUrl);',
+        '      if (payload.includeTranscript && payload.transcript) {',
+        '        cursor.insertText("\\n" + payload.transcript + "\\n");',
+        '      }',
+        '    } else {',
+        '      var body = doc.getBody();',
+        '      var p = body.appendParagraph(fileUrl);',
+        '      p.setLinkUrl(fileUrl);',
+        '      if (payload.includeTranscript && payload.transcript) {',
+        '        body.appendParagraph(payload.transcript);',
+        '      }',
+        '    }',
+        '  }',
+        '  return { fileId: file.getId(), url: fileUrl, name: safeName };',
+        '}'
+      ].join('\n');
+
+      // --- Environment & Apps Script Context ---
+      const isAppsScript = Boolean(window.google && window.google.script && window.google.script.run);
+      const isInIframe = (function () {
+        try { return window.self !== window.top; } catch (e) { return true; }
+      })();
+      const hasOpenerBridge = (function () {
+        try { return Boolean(window.opener && window.opener !== window && !isAppsScript); } catch (e) { return false; }
+      })();
+
+      const appContext = {
+        docId: '',
+        docTitle: '',
+        externalRecorderUrl: ''
+      };
+
+      // Track pending postMessage requests when running as a popup connected to Docs Sidebar
+      const pendingRelayCallbacks = new Map();
+
+      // Parse URL parameters if opened with ?docTitle=...
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('docId')) appContext.docId = params.get('docId');
+        if (params.get('docTitle')) appContext.docTitle = params.get('docTitle');
+      } catch (e) {}
+
+      // --- State ---
+      let isRecording = false;
+      let isPaused = false;
+      let recordingSeconds = 0;
+      let finalTranscript = '';
+      let interimTranscript = '';
+      let speechSupported = true;
+      let recordings = [];
+      let selectedSidebarFile = null;
+      const objectUrls = new Set();
+
+      // Monotonic clock & media handles
+      let startTimestamp = 0;
+      let accumulatedMs = 0;
+      let timerInterval = null;
+      let mediaRecorder = null;
+      let activeStream = null;
+      let audioChunks = [];
+      let audioContext = null;
+      let analyser = null;
+      let animFrameId = null;
+      let recognition = null;
+
+      // --- DOM Elements ---
+      const el = {
+        permissionGate: document.getElementById('permissionGate'),
+        gateChecking: document.getElementById('gateChecking'),
+        gateBlocked: document.getElementById('gateBlocked'),
+        gateErrorText: document.getElementById('gateErrorText'),
+        popoutFallbackBox: document.getElementById('popoutFallbackBox'),
+        btnPopoutFromGate: document.getElementById('btnPopoutFromGate'),
+        btnRetryMic: document.getElementById('btnRetryMic'),
+        btnOpenSetupFromGate: document.getElementById('btnOpenSetupFromGate'),
+
+        docsSidebarHub: document.getElementById('docsSidebarHub'),
+        sidebarDocName: document.getElementById('sidebarDocName'),
+        sidebarDropZone: document.getElementById('sidebarDropZone'),
+        sidebarFileInput: document.getElementById('sidebarFileInput'),
+        sidebarSelectedFileLabel: document.getElementById('sidebarSelectedFileLabel'),
+        sidebarTranscriptInput: document.getElementById('sidebarTranscriptInput'),
+        sidebarShareDomain: document.getElementById('sidebarShareDomain'),
+        btnSidebarUpload: document.getElementById('btnSidebarUpload'),
+        sidebarStatusBanner: document.getElementById('sidebarStatusBanner'),
+        btnToggleRelayConfig: document.getElementById('btnToggleRelayConfig'),
+        relayToggleChevron: document.getElementById('relayToggleChevron'),
+        relayConfigBody: document.getElementById('relayConfigBody'),
+        externalRecorderUrlInput: document.getElementById('externalRecorderUrlInput'),
+        btnSaveExternalUrl: document.getElementById('btnSaveExternalUrl'),
+        btnLaunchExternalPopup: document.getElementById('btnLaunchExternalPopup'),
+        sidebarHistoryList: document.getElementById('sidebarHistoryList'),
+
+        appWorkspace: document.getElementById('appWorkspace'),
+        envBadge: document.getElementById('envBadge'),
+        linkedDocSubtitle: document.getElementById('linkedDocSubtitle'),
+        btnHeaderPopout: document.getElementById('btnHeaderPopout'),
+        btnToggleSetup: document.getElementById('btnToggleSetup'),
+        setupDrawer: document.getElementById('setupDrawer'),
+        btnCloseSetup: document.getElementById('btnCloseSetup'),
+        tabSteps: document.getElementById('tabSteps'),
+        tabCodeGs: document.getElementById('tabCodeGs'),
+        codeGsBlock: document.getElementById('codeGsBlock'),
+        btnCopyCodeGs: document.getElementById('btnCopyCodeGs'),
+        copyCodeGsLabel: document.getElementById('copyCodeGsLabel'),
+
+        errorBanner: document.getElementById('errorBanner'),
+        errorBannerText: document.getElementById('errorBannerText'),
+        btnDismissError: document.getElementById('btnDismissError'),
+
+        titleInput: document.getElementById('titleInput'),
+        titleCounter: document.getElementById('titleCounter'),
+        btnRecordToggle: document.getElementById('btnRecordToggle'),
+        iconMic: document.getElementById('iconMic'),
+        iconStop: document.getElementById('iconStop'),
+        btnPauseToggle: document.getElementById('btnPauseToggle'),
+        iconPause: document.getElementById('iconPause'),
+        iconResume: document.getElementById('iconResume'),
+
+        canvasContainer: document.getElementById('canvasContainer'),
+        waveformCanvas: document.getElementById('waveformCanvas'),
+        canvasHint: document.getElementById('canvasHint'),
+        pausedBadge: document.getElementById('pausedBadge'),
+        statusDot: document.getElementById('statusDot'),
+        timerDisplay: document.getElementById('timerDisplay'),
+
+        speechUnsupportedBadge: document.getElementById('speechUnsupportedBadge'),
+        liveFinalText: document.getElementById('liveFinalText'),
+        liveInterimText: document.getElementById('liveInterimText'),
+        livePlaceholder: document.getElementById('livePlaceholder'),
+        sharingOptionWrap: document.getElementById('sharingOptionWrap'),
+        shareDomainCheckbox: document.getElementById('shareDomainCheckbox'),
+        maxCapLabel: document.getElementById('maxCapLabel'),
+
+        recordingsSection: document.getElementById('recordingsSection'),
+        recordingsCount: document.getElementById('recordingsCount'),
+        recordingsHint: document.getElementById('recordingsHint'),
+        recordingsList: document.getElementById('recordingsList')
+      };
+
+      el.codeGsBlock.textContent = PERSONAL_CODE_GS;
+
+      // --- Utility Helpers ---
+      function sanitizeText(val, maxLen) {
+        if (typeof val !== 'string') return '';
+        return val.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').slice(0, maxLen);
+      }
+
+      function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      function toSafeFilename(title) {
+        const cleaned = sanitizeText(title, MAX_TITLE_LENGTH)
+          .trim()
+          .replace(/[^a-z0-9-_]+/gi, '_')
+          .replace(/^_+|_+$/g, '')
+          .toLowerCase();
+        return cleaned || 'audio_note';
+      }
+
+      function formatTime(secs) {
+        const safe = Number.isFinite(secs) && secs >= 0 ? Math.floor(secs) : 0;
+        const m = Math.floor(safe / 60).toString().padStart(2, '0');
+        const s = (safe % 60).toString().padStart(2, '0');
+        return m + ':' + s;
+      }
+
+      function formatBytes(bytes) {
+        if (!Number.isFinite(bytes) || bytes <= 0) return '0 KB';
+        if (bytes < 1024 * 1024) return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+      }
+
+      function copyToClipboard(text, onDone) {
+        const fallbackCopy = () => {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          try { document.execCommand('copy'); } catch (e) {}
+          document.body.removeChild(ta);
+          if (onDone) onDone();
+        };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => {
+            if (onDone) onDone();
+          }).catch(fallbackCopy);
+        } else {
+          fallbackCopy();
+        }
+      }
+
+      function getSupportedAudioFormat() {
+        const candidates = [
+          { mimeType: 'audio/webm;codecs=opus', ext: 'webm' },
+          { mimeType: 'audio/mp4', ext: 'm4a' },
+          { mimeType: 'audio/ogg;codecs=opus', ext: 'ogg' },
+          { mimeType: 'audio/webm', ext: 'webm' }
+        ];
+        if (typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function') {
+          for (let i = 0; i < candidates.length; i++) {
+            if (MediaRecorder.isTypeSupported(candidates[i].mimeType)) {
+              return candidates[i];
+            }
+          }
+        }
+        return { mimeType: 'audio/webm', ext: 'webm' };
+      }
+
+      function blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (typeof reader.result === 'string') {
+              const idx = reader.result.indexOf(',');
+              resolve(idx >= 0 ? reader.result.slice(idx + 1) : reader.result);
+            } else {
+              reject(new Error('Audio encoding failed.'));
+            }
+          };
+          reader.onerror = () => reject(new Error('FileReader failed.'));
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      function showError(msg) {
+        el.errorBannerText.textContent = msg;
+        el.errorBanner.classList.remove('hidden');
+        el.errorBanner.classList.add('flex');
+      }
+
+      function hideError() {
+        el.errorBanner.classList.add('hidden');
+        el.errorBanner.classList.remove('flex');
+      }
+
+      // --- Google Docs Sidebar Hub Mode (Zero /exec Web App Needed!) ---
+      function setSidebarStatus(message, isErr) {
+        el.sidebarStatusBanner.textContent = message;
+        el.sidebarStatusBanner.className = isErr
+          ? 'text-[11px] font-mono px-2.5 py-2 rounded-xl break-words bg-red-50 text-red-700 border border-red-200'
+          : 'text-[11px] font-mono px-2.5 py-2 rounded-xl break-words bg-emerald-50 text-emerald-800 border border-emerald-200';
+      }
+
+      function appendSidebarHistory(name, url) {
+        const row = document.createElement('div');
+        row.className = 'bg-white border border-zinc-200 rounded-xl px-3 py-2 flex items-center justify-between gap-2 text-xs';
+        row.innerHTML =
+          '<span class="font-medium text-zinc-800 truncate">' + escapeHtml(name) + '</span>' +
+          '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" class="text-[11px] font-mono text-zinc-600 hover:text-zinc-900 underline shrink-0">Drive &nearr;</a>';
+        el.sidebarHistoryList.prepend(row);
+      }
+
+      function handleSidebarFileSelected(file) {
+        if (!file) return;
+        if (file.size > MAX_UPLOAD_BYTES) {
+          setSidebarStatus('File exceeds 18 MB sidebar limit.', true);
+          return;
+        }
+        selectedSidebarFile = file;
+        el.sidebarSelectedFileLabel.textContent = file.name + ' (' + formatBytes(file.size) + ')';
+        el.btnSidebarUpload.disabled = false;
+        el.btnSidebarUpload.textContent = 'Upload to Drive & Insert in Doc';
+        el.btnSidebarUpload.className =
+          'w-full py-2 px-3 rounded-xl text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-white transition-colors';
+      }
+
+      function initDocsSidebarHub() {
+        el.permissionGate.classList.add('hidden');
+        el.appWorkspace.classList.add('hidden');
+        el.docsSidebarHub.classList.remove('hidden');
+
+        // Fetch active Doc title + saved external recorder URL
+        window.google.script.run
+          .withSuccessHandler(function (ctx) {
+            if (!ctx) return;
+            if (ctx.docId) appContext.docId = ctx.docId;
+            if (ctx.docTitle) {
+              appContext.docTitle = ctx.docTitle;
+              el.sidebarDocName.textContent = 'Doc: ' + ctx.docTitle;
+            }
+            if (ctx.externalRecorderUrl) {
+              appContext.externalRecorderUrl = ctx.externalRecorderUrl;
+              el.externalRecorderUrlInput.value = ctx.externalRecorderUrl;
+            }
+          })
+          .withFailureHandler(function () {})
+          .getSidebarContext();
+
+        // Click & Drag-and-Drop listeners
+        el.sidebarDropZone.addEventListener('click', function () {
+          el.sidebarFileInput.click();
+        });
+        el.sidebarFileInput.addEventListener('change', function (e) {
+          if (e.target.files && e.target.files[0]) {
+            handleSidebarFileSelected(e.target.files[0]);
+          }
+        });
+        el.sidebarDropZone.addEventListener('dragover', function (e) {
+          e.preventDefault();
+          el.sidebarDropZone.classList.add('border-zinc-900', 'bg-zinc-100');
+        });
+        el.sidebarDropZone.addEventListener('dragleave', function () {
+          el.sidebarDropZone.classList.remove('border-zinc-900', 'bg-zinc-100');
+        });
+        el.sidebarDropZone.addEventListener('drop', function (e) {
+          e.preventDefault();
+          el.sidebarDropZone.classList.remove('border-zinc-900', 'bg-zinc-100');
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleSidebarFileSelected(e.dataTransfer.files[0]);
+          }
+        });
+
+        // Upload & Insert at Cursor
+        el.btnSidebarUpload.addEventListener('click', async function () {
+          if (!selectedSidebarFile) return;
+          el.btnSidebarUpload.disabled = true;
+          el.btnSidebarUpload.textContent = 'Uploading to Google Drive...';
+          el.sidebarStatusBanner.classList.add('hidden');
+
+          try {
+            const base64Data = await blobToBase64(selectedSidebarFile);
+            const cleanTranscript = sanitizeText(el.sidebarTranscriptInput.value, MAX_TRANSCRIPT_LENGTH).trim();
+            const payload = {
+              base64Data: base64Data,
+              filename: selectedSidebarFile.name || 'voice_note.webm',
+              mimeType: selectedSidebarFile.type || 'audio/webm',
+              transcript: cleanTranscript,
+              includeTranscript: cleanTranscript.length > 0,
+              shareWithLink: Boolean(el.sidebarShareDomain.checked),
+              docId: appContext.docId || ''
+            };
+
+            window.google.script.run
+              .withSuccessHandler(function (res) {
+                selectedSidebarFile = null;
+                el.sidebarFileInput.value = '';
+                el.sidebarTranscriptInput.value = '';
+                el.sidebarSelectedFileLabel.innerHTML = 'Drop recorded <code class="font-mono">.webm</code> here or click to pick';
+                el.btnSidebarUpload.disabled = true;
+                el.btnSidebarUpload.textContent = 'Select or drop an audio file above';
+                el.btnSidebarUpload.className =
+                  'w-full py-2 px-3 rounded-xl text-xs font-semibold bg-zinc-200 text-zinc-400 cursor-not-allowed transition-colors';
+
+                setSidebarStatus('Inserted! Hover the link in your Doc and click "Chip" (or press Tab).', false);
+                if (res && res.url) appendSidebarHistory(res.name || 'voice_note.webm', res.url);
+              })
+              .withFailureHandler(function (err) {
+                el.btnSidebarUpload.disabled = false;
+                el.btnSidebarUpload.textContent = 'Upload to Drive & Insert in Doc';
+                setSidebarStatus((err && err.message) || 'Upload failed.', true);
+              })
+              .uploadAndInsertAudioNote(payload);
+          } catch (err) {
+            el.btnSidebarUpload.disabled = false;
+            el.btnSidebarUpload.textContent = 'Upload to Drive & Insert in Doc';
+            setSidebarStatus('Could not encode audio file.', true);
+          }
+        });
+
+        // Optional 1-Click External Popup Relay Configuration
+        el.btnToggleRelayConfig.addEventListener('click', function () {
+          const isHidden = el.relayConfigBody.classList.toggle('hidden');
+          el.relayToggleChevron.textContent = isHidden ? 'Show' : 'Hide';
+        });
+
+        el.btnSaveExternalUrl.addEventListener('click', function () {
+          const raw = el.externalRecorderUrlInput.value.trim();
+          window.google.script.run
+            .withSuccessHandler(function (res) {
+              appContext.externalRecorderUrl = res.saved || '';
+              el.btnSaveExternalUrl.textContent = 'Saved!';
+              setTimeout(function () { el.btnSaveExternalUrl.textContent = 'Save'; }, 1500);
+            })
+            .withFailureHandler(function (err) {
+              setSidebarStatus((err && err.message) || 'Invalid URL.', true);
+            })
+            .saveExternalRecorderUrl(raw);
+        });
+
+        el.btnLaunchExternalPopup.addEventListener('click', function () {
+          const rawUrl = el.externalRecorderUrlInput.value.trim() || appContext.externalRecorderUrl;
+          if (!rawUrl) {
+            setSidebarStatus('Paste your hosted HTTPS Index.html URL above first.', true);
+            return;
+          }
+          try {
+            const u = new URL(rawUrl);
+            if (appContext.docTitle) u.searchParams.set('docTitle', appContext.docTitle);
+            if (appContext.docId) u.searchParams.set('docId', appContext.docId);
+            // Open WITHOUT noopener so window.opener postMessage relay stays connected
+            window.open(u.toString(), 'CarbonVoicePopup', 'width=420,height=660');
+          } catch (e) {
+            setSidebarStatus('Enter a valid https:// URL.', true);
+          }
+        });
+
+        // Listen for 1-click postMessage payloads from the connected Floating Mic Popup
+        window.addEventListener('message', function (event) {
+          if (!event.data || event.data.type !== 'CARBON_INSERT_NOTE') return;
+
+          // Validate origin against saved external recorder URL when configured
+          const configured = el.externalRecorderUrlInput.value.trim() || appContext.externalRecorderUrl;
+          if (configured) {
+            try {
+              const allowedOrigin = new URL(configured).origin;
+              if (event.origin !== allowedOrigin) return;
+            } catch (e) {
+              return;
+            }
+          }
+
+          const incoming = event.data.payload || {};
+          setSidebarStatus('Receiving "' + (incoming.title || 'note') + '" & uploading to Drive...', false);
+
+          window.google.script.run
+            .withSuccessHandler(function (res) {
+              setSidebarStatus('Inserted! Hover link in Doc -> click "Chip".', false);
+              if (res && res.url) appendSidebarHistory(res.name || 'voice_note.webm', res.url);
+              if (event.source) {
+                event.source.postMessage(
+                  { type: 'CARBON_INSERT_RESULT', requestId: event.data.requestId, ok: true, url: res && res.url },
+                  event.origin
+                );
+              }
+            })
+            .withFailureHandler(function (err) {
+              const msg = (err && err.message) || 'Drive upload failed.';
+              setSidebarStatus(msg, true);
+              if (event.source) {
+                event.source.postMessage(
+                  { type: 'CARBON_INSERT_RESULT', requestId: event.data.requestId, ok: false, error: msg },
+                  event.origin
+                );
+              }
+            })
+            .uploadAndInsertAudioNote(incoming);
+        });
+      }
+
+      // Listen for relay responses when running as the Floating Mic Popup
+      window.addEventListener('message', function (event) {
+        if (!event.data || event.data.type !== 'CARBON_INSERT_RESULT') return;
+        const cb = pendingRelayCallbacks.get(event.data.requestId);
+        if (cb) {
+          pendingRelayCallbacks.delete(event.data.requestId);
+          cb(event.data);
+        }
+      });
+
+      function configureRecorderHeader() {
+        if (hasOpenerBridge) {
+          el.envBadge.textContent = 'Connected Popup';
+          el.sharingOptionWrap.classList.remove('hidden');
+          el.sharingOptionWrap.classList.add('inline-flex');
+          el.shareDomainCheckbox.checked = true;
+          el.maxCapLabel.classList.add('hidden');
+          el.linkedDocSubtitle.textContent = appContext.docTitle
+            ? 'Linked to Doc: ' + appContext.docTitle
+            : 'Connected to open Google Docs Sidebar';
+          el.recordingsHint.textContent = 'Click Send to Doc -> hover link -> click Chip';
+        } else {
+          el.recordingsHint.textContent = 'Download .webm -> drag into your Google Docs Sidebar';
+        }
+      }
+
+      function showWorkspaceWithoutMicAndOpenSetup() {
+        el.permissionGate.classList.add('hidden');
+        el.appWorkspace.classList.remove('hidden');
+        el.setupDrawer.classList.remove('hidden');
+      }
+
+      // --- 1. Upfront Microphone Permission Gate ---
+      async function requestMicPermission() {
+        el.gateChecking.classList.remove('hidden');
+        el.gateBlocked.classList.add('hidden');
+
+        try {
+          if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+            throw new Error('Audio capture requires HTTPS or localhost.');
+          }
+
+          // Fast-path check so returning users don't get an unnecessary hardware flash
+          if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+            try {
+              const perm = await navigator.permissions.query({ name: 'microphone' });
+              if (perm.state === 'granted') {
+                unlockWorkspace();
+                return;
+              }
+            } catch (e) {}
+          }
+
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach((t) => t.stop());
+          unlockWorkspace();
+        } catch (err) {
+          el.gateChecking.classList.add('hidden');
+          el.gateBlocked.classList.remove('hidden');
+
+          if (isInIframe && isAppsScript) {
+            el.gateErrorText.textContent =
+              'Google Docs blocked microphone access inside its sidebar iframe.';
+            el.popoutFallbackBox.classList.remove('hidden');
+          } else if (err && err.name === 'NotAllowedError') {
+            el.gateErrorText.textContent =
+              'Microphone permission was denied. Allow mic access in your browser address bar and retry.';
+          } else {
+            el.gateErrorText.textContent = (err && err.message) || 'Could not access microphone.';
+          }
+        }
+      }
+
+      function unlockWorkspace() {
+        el.permissionGate.classList.add('hidden');
+        el.appWorkspace.classList.remove('hidden');
+        el.titleInput.focus();
+      }
+
+      // --- 2. Speech Recognition Setup ---
+      function initSpeechRecognition() {
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRec) {
+          speechSupported = false;
+          el.speechUnsupportedBadge.classList.remove('hidden');
+          el.livePlaceholder.textContent = 'Audio capture ready. Manual transcript notes can be edited after saving.';
+          return;
+        }
+
+        recognition = new SpeechRec();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = navigator.language || 'en-GB';
+
+        recognition.onresult = function (event) {
+          let addedFinal = '';
+          let currInterim = '';
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const seg = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              addedFinal += seg;
+            } else {
+              currInterim += seg;
+            }
+          }
+
+          if (addedFinal) {
+            finalTranscript = sanitizeText(
+              (finalTranscript + ' ' + addedFinal).replace(/\s+/g, ' ').trim(),
+              MAX_TRANSCRIPT_LENGTH
+            );
+          }
+          interimTranscript = sanitizeText(currInterim.trim(), 500);
+          renderLiveTranscript();
+        };
+
+        recognition.onerror = function () {};
+
+        recognition.onend = function () {
+          if (isRecording && !isPaused) {
+            try { recognition.start(); } catch (e) {}
+          }
+        };
+      }
+
+      function renderLiveTranscript() {
+        const hasAny = Boolean(finalTranscript || interimTranscript);
+        el.livePlaceholder.classList.toggle('hidden', hasAny);
+        el.liveFinalText.textContent = finalTranscript;
+        el.liveInterimText.textContent = interimTranscript ? (finalTranscript ? ' ' : '') + interimTranscript : '';
+      }
+
+      // --- 3. Retina Canvas Waveform ---
+      function startVisualizerLoop() {
+        const canvas = el.waveformCanvas;
+        const container = el.canvasContainer;
+        if (!canvas || !container || !analyser) return;
+
+        const ctx = canvas.getContext('2d');
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        function render() {
+          if (!isRecording) return;
+          animFrameId = requestAnimationFrame(render);
+
+          // Pause GPU drawing when reading Google Doc in background tab
+          if (document.hidden) return;
+
+          const rect = container.getBoundingClientRect();
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          const targetW = Math.max(1, Math.floor(rect.width * dpr));
+          const targetH = Math.max(1, Math.floor(rect.height * dpr));
+
+          if (canvas.width !== targetW || canvas.height !== targetH) {
+            canvas.width = targetW;
+            canvas.height = targetH;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          }
+
+          const width = rect.width;
+          const height = rect.height;
+          ctx.clearRect(0, 0, width, height);
+
+          analyser.getByteFrequencyData(dataArray);
+
+          const barCount = Math.min(56, Math.max(18, Math.floor(width / 9)));
+          const gap = 2;
+          const totalGap = gap * (barCount - 1);
+          const barWidth = Math.max(2, (width - 16 - totalGap) / barCount);
+          const startX = (width - (barWidth * barCount + totalGap)) / 2;
+          const centerY = height / 2;
+
+          const usableBins = Math.floor(bufferLength * 0.45);
+          const step = Math.max(1, Math.floor(usableBins / barCount));
+
+          for (let i = 0; i < barCount; i++) {
+            let sum = 0;
+            for (let j = 0; j < step; j++) {
+              sum += dataArray[i * step + j] || 0;
+            }
+            const avg = isPaused ? 0 : sum / step;
+            const norm = avg / 255;
+            const barH = Math.max(2, norm * (height - 8));
+            const x = startX + i * (barWidth + gap);
+            const y = centerY - barH / 2;
+
+            ctx.fillStyle = isPaused
+              ? 'rgba(161, 161, 170, 0.5)'
+              : 'rgba(24, 24, 27, ' + (0.25 + norm * 0.75).toFixed(2) + ')';
+            ctx.fillRect(x, y, barWidth, barH);
+          }
+        }
+
+        render();
+      }
+
+      // --- 4. Core Recording Lifecycle ---
+      function syncRecorderControlsUI() {
+        const cleanTitle = sanitizeText(el.titleInput.value, MAX_TITLE_LENGTH).trim();
+        const canStart = cleanTitle.length > 0;
+        el.titleCounter.textContent = cleanTitle.length + '/' + MAX_TITLE_LENGTH;
+        el.titleInput.disabled = isRecording;
+
+        if (isRecording) {
+          el.btnRecordToggle.disabled = false;
+          el.btnRecordToggle.className =
+            'flex items-center justify-center w-10 h-10 rounded-xl transition-all active:scale-95 bg-red-600 hover:bg-red-700 text-white';
+          el.btnRecordToggle.title = 'Stop & Save';
+          el.iconMic.classList.add('hidden');
+          el.iconStop.classList.remove('hidden');
+
+          el.btnPauseToggle.classList.remove('hidden');
+          el.btnPauseToggle.classList.add('flex');
+          el.iconPause.classList.toggle('hidden', isPaused);
+          el.iconResume.classList.toggle('hidden', !isPaused);
+
+          el.canvasHint.classList.add('hidden');
+          el.pausedBadge.classList.toggle('hidden', !isPaused);
+          el.pausedBadge.classList.toggle('flex', isPaused);
+
+          el.statusDot.className = isPaused
+            ? 'w-2 h-2 rounded-full bg-amber-500'
+            : 'w-2 h-2 rounded-full bg-red-600 animate-pulse';
+          el.timerDisplay.className = 'font-mono text-sm font-semibold tabular-nums text-zinc-900';
+        } else {
+          el.btnRecordToggle.disabled = !canStart;
+          el.btnRecordToggle.className = canStart
+            ? 'flex items-center justify-center w-10 h-10 rounded-xl transition-all active:scale-95 bg-zinc-900 hover:bg-zinc-800 text-white'
+            : 'flex items-center justify-center w-10 h-10 rounded-xl transition-all bg-zinc-200 text-zinc-400 cursor-not-allowed';
+          el.btnRecordToggle.title = canStart ? 'Start Recording' : 'Enter a title first';
+          el.iconMic.classList.remove('hidden');
+          el.iconStop.classList.add('hidden');
+
+          el.btnPauseToggle.classList.add('hidden');
+          el.btnPauseToggle.classList.remove('flex');
+
+          el.canvasHint.classList.remove('hidden');
+          el.canvasHint.textContent = canStart ? 'Ready — press Enter or click Mic' : 'Enter a title above';
+          el.pausedBadge.classList.add('hidden');
+          el.pausedBadge.classList.remove('flex');
+
+          el.statusDot.className = 'w-2 h-2 rounded-full bg-zinc-300';
+          el.timerDisplay.className = 'font-mono text-sm font-semibold tabular-nums text-zinc-400';
+        }
+      }
+
+      async function startRecording() {
+        const cleanTitle = sanitizeText(el.titleInput.value, MAX_TITLE_LENGTH).trim();
+        if (!cleanTitle || isRecording) return;
+
+        hideError();
+
+        try {
+          activeStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              channelCount: 1,
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
+          });
+
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          audioContext = new AudioCtx();
+          analyser = audioContext.createAnalyser();
+          analyser.fftSize = 256;
+          analyser.smoothingTimeConstant = 0.75;
+          const source = audioContext.createMediaStreamSource(activeStream);
+          source.connect(analyser);
+
+          const format = getSupportedAudioFormat();
+          const options = { audioBitsPerSecond: VOICE_BITS_PER_SECOND };
+          if (MediaRecorder.isTypeSupported(format.mimeType)) {
+            options.mimeType = format.mimeType;
+          }
+
+          mediaRecorder = new MediaRecorder(activeStream, options);
+          audioChunks = [];
+
+          mediaRecorder.ondataavailable = function (e) {
+            if (e.data && e.data.size > 0) audioChunks.push(e.data);
+          };
+
+          const capturedTitle = cleanTitle;
+          mediaRecorder.onstop = function () {
+            const blob = new Blob(audioChunks, { type: format.mimeType });
+            const url = URL.createObjectURL(blob);
+            objectUrls.add(url);
+
+            const combinedText = sanitizeText(
+              (finalTranscript + ' ' + interimTranscript).replace(/\s+/g, ' ').trim(),
+              MAX_TRANSCRIPT_LENGTH
+            );
+
+            const rec = {
+              id: (window.crypto && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7),
+              title: capturedTitle || 'Untitled Note',
+              url: url,
+              blob: blob,
+              sizeBytes: blob.size,
+              mimeType: format.mimeType,
+              ext: format.ext,
+              transcript: combinedText || 'No transcript captured.',
+              timestamp: new Date().toLocaleString([], {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              }),
+              duration: Math.max(1, recordingSeconds),
+              driveUrl: ''
+            };
+
+            recordings.unshift(rec);
+            renderRecordingsList();
+
+            // Reset session buffers
+            audioChunks = [];
+            finalTranscript = '';
+            interimTranscript = '';
+            recordingSeconds = 0;
+            accumulatedMs = 0;
+            startTimestamp = 0;
+            el.titleInput.value = '';
+            el.timerDisplay.textContent = '00:00';
+            renderLiveTranscript();
+            syncRecorderControlsUI();
+
+            // Clear canvas
+            const ctx = el.waveformCanvas.getContext('2d');
+            if (ctx) ctx.clearRect(0, 0, el.waveformCanvas.width, el.waveformCanvas.height);
+
+            if (activeStream) {
+              activeStream.getTracks().forEach((t) => t.stop());
+              activeStream = null;
+            }
+          };
+
+          finalTranscript = '';
+          interimTranscript = '';
+          recordingSeconds = 0;
+          accumulatedMs = 0;
+          startTimestamp = performance.now();
+          isRecording = true;
+          isPaused = false;
+
+          renderLiveTranscript();
+          el.timerDisplay.textContent = '00:00';
+          syncRecorderControlsUI();
+
+          mediaRecorder.start(1000);
+
+          if (recognition) {
+            try { recognition.start(); } catch (e) {}
+          }
+
+          if (timerInterval) clearInterval(timerInterval);
+          timerInterval = setInterval(function () {
+            if (isRecording && !isPaused) {
+              const elapsedMs = accumulatedMs + (performance.now() - startTimestamp);
+              const secs = Math.floor(elapsedMs / 1000);
+              if (secs !== recordingSeconds) {
+                recordingSeconds = secs;
+                el.timerDisplay.textContent = formatTime(secs);
+              }
+              if (secs >= MAX_RECORDING_SECONDS) {
+                stopRecording();
+              }
+            }
+          }, 250);
+
+          startVisualizerLoop();
+        } catch (err) {
+          isRecording = false;
+          syncRecorderControlsUI();
+          showError('Could not start audio capture. Check your microphone permissions.');
+        }
+      }
+
+      function stopRecording() {
+        if (!mediaRecorder || !isRecording) return;
+
+        if (!isPaused && startTimestamp > 0) {
+          accumulatedMs += performance.now() - startTimestamp;
+          recordingSeconds = Math.min(MAX_RECORDING_SECONDS, Math.round(accumulatedMs / 1000));
+        }
+
+        isRecording = false;
+        isPaused = false;
+
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        if (animFrameId) {
+          cancelAnimationFrame(animFrameId);
+          animFrameId = null;
+        }
+        if (recognition) {
+          try { recognition.stop(); } catch (e) {}
+        }
+        if (mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        if (audioContext && audioContext.state !== 'closed') {
+          audioContext.close().catch(function () {});
+          audioContext = null;
+        }
+
+        syncRecorderControlsUI();
+      }
+
+      function togglePause() {
+        if (!mediaRecorder || !isRecording) return;
+
+        if (isPaused) {
+          if (mediaRecorder.state === 'paused') mediaRecorder.resume();
+          startTimestamp = performance.now();
+          isPaused = false;
+          if (recognition) {
+            try { recognition.start(); } catch (e) {}
+          }
+        } else {
+          if (mediaRecorder.state === 'recording') mediaRecorder.pause();
+          accumulatedMs += performance.now() - startTimestamp;
+          isPaused = true;
+          if (recognition) {
+            try { recognition.stop(); } catch (e) {}
+          }
+        }
+        syncRecorderControlsUI();
+      }
+
+      // --- 5. Render Saved Recordings Cards ---
+      function renderRecordingsList() {
+        el.recordingsCount.textContent = String(recordings.length);
+        if (recordings.length === 0) {
+          el.recordingsSection.classList.add('hidden');
+          el.recordingsList.innerHTML = '';
+          return;
+        }
+
+        el.recordingsSection.classList.remove('hidden');
+        el.recordingsList.innerHTML = '';
+
+        recordings.forEach(function (rec) {
+          const card = buildRecordingCard(rec);
+          el.recordingsList.appendChild(card);
+        });
+      }
+
+      function buildRecordingCard(rec) {
+        const article = document.createElement('article');
+        article.className = 'bg-white border border-zinc-200 rounded-2xl p-3.5 sm:p-4 space-y-3 shadow-sm';
+
+        let isPlaying = false;
+        let playbackRate = 1;
+        let effectiveDuration = rec.duration || 1;
+        let isExpanded = false;
+
+        const audio = new Audio(rec.url);
+        audio.preload = 'metadata';
+
+        article.innerHTML = `
+          <div class="flex items-start justify-between gap-2.5">
+            <div class="flex items-center gap-2.5 min-w-0 flex-1">
+              <button type="button" data-role="play" aria-label="Play recording" class="w-9 h-9 flex items-center justify-center bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 transition-colors shrink-0 active:scale-95">
+                <svg data-icon="play" class="w-3.5 h-3.5 fill-current ml-0.5" viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+                <svg data-icon="pause" class="hidden w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>
+              </button>
+              <div class="min-w-0 flex-1">
+                <h3 data-role="titleDisplay" class="font-semibold text-zinc-900 text-sm truncate" title="${escapeHtml(rec.title)}">${escapeHtml(rec.title)}</h3>
+                <input data-role="titleEdit" type="text" maxlength="120" class="hidden w-full font-semibold text-zinc-900 text-xs sm:text-sm bg-zinc-50 border border-zinc-300 rounded-lg px-2 py-1 focus:outline-none focus:border-zinc-900" />
+                <p data-role="meta" class="text-[11px] font-mono text-zinc-500 mt-0.5 truncate">${escapeHtml(rec.timestamp)} • ${formatTime(effectiveDuration)} • ${formatBytes(rec.sizeBytes)}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button type="button" data-role="editBtn" title="Edit title or transcript" class="text-zinc-400 hover:text-zinc-800 p-1.5 rounded-lg hover:bg-zinc-100 transition-colors">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+              </button>
+              <button type="button" data-role="deleteBtn" title="Delete recording" class="text-zinc-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+              </button>
+              <div data-role="confirmBox" class="hidden items-center gap-1.5 bg-red-50 border border-red-200 rounded-lg px-2 py-1 text-[11px]">
+                <button type="button" data-role="confirmDelete" class="font-semibold text-red-600 hover:text-red-800">Confirm</button>
+                <span class="text-red-200">/</span>
+                <button type="button" data-role="cancelDelete" class="text-zinc-500 hover:text-zinc-800">Cancel</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Seek Bar -->
+          <div class="flex items-center gap-2.5">
+            <span data-role="currentTime" class="text-[10px] font-mono text-zinc-400 tabular-nums w-9">00:00</span>
+            <div data-role="seekBar" class="flex-1 h-1.5 bg-zinc-100 rounded-full overflow-hidden cursor-pointer">
+              <div data-role="seekFill" class="h-full bg-zinc-900 rounded-full transition-all duration-75" style="width: 0%"></div>
+            </div>
+            <button type="button" data-role="speedBtn" class="px-1.5 py-0.5 rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-mono text-[10px] font-semibold transition-colors">1x</button>
+          </div>
+
+          <!-- Transcript View -->
+          <div data-role="transcriptView" class="bg-zinc-50 border border-zinc-200/60 rounded-xl px-3 py-2 space-y-1">
+            <p data-role="transcriptText" class="text-xs text-zinc-600 leading-relaxed line-clamp-2"></p>
+            <button type="button" data-role="expandBtn" class="hidden text-[11px] font-medium text-zinc-500 hover:text-zinc-900">Expand transcript</button>
+          </div>
+
+          <!-- Transcript Editor -->
+          <div data-role="editPanel" class="hidden space-y-2 pt-1">
+            <textarea data-role="transcriptEdit" rows="3" maxlength="20000" class="w-full text-xs text-zinc-800 bg-zinc-50 border border-zinc-300 rounded-xl p-2.5 focus:outline-none focus:border-zinc-900 resize-y"></textarea>
+            <div class="flex items-center justify-end gap-2">
+              <button type="button" data-role="cancelEdit" class="px-2.5 py-1 text-xs font-medium text-zinc-500 hover:text-zinc-900">Cancel</button>
+              <button type="button" data-role="saveEdit" class="px-3 py-1 text-xs font-medium bg-zinc-900 text-white rounded-lg hover:bg-zinc-800">Save</button>
+            </div>
+          </div>
+
+          <!-- Status Banner (Drive Upload / Link) -->
+          <div data-role="statusBox" class="hidden text-[11px] font-mono text-zinc-700 bg-zinc-100 px-2.5 py-1.5 rounded-lg break-all"></div>
+
+          <!-- Actions -->
+          <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+            <button type="button" data-role="insertDocBtn" class="${(isAppsScript || hasOpenerBridge) ? 'flex' : 'hidden'} w-full sm:w-auto sm:flex-1 items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-60 transition-colors">
+              <span>Send to Google Doc</span>
+            </button>
+            <button type="button" data-role="copyBtn" class="flex-1 flex items-center justify-center gap-1.5 border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-800 py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors">
+              <span>Copy</span>
+            </button>
+            <button type="button" data-role="dlAudioBtn" class="flex-1 flex items-center justify-center gap-1.5 border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-800 py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors">
+              <span>.${escapeHtml(rec.ext || 'webm')}</span>
+            </button>
+            <button type="button" data-role="dlTxtBtn" class="flex-1 flex items-center justify-center gap-1.5 border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-800 py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors">
+              <span>.txt</span>
+            </button>
+          </div>
+        `;
+
+        const q = (role) => article.querySelector('[data-role="' + role + '"]');
+        const playIcon = article.querySelector('[data-icon="play"]');
+        const pauseIcon = article.querySelector('[data-icon="pause"]');
+
+        function syncTranscriptUI() {
+          q('transcriptText').textContent = rec.transcript;
+          if (rec.transcript.length > 120) {
+            q('expandBtn').classList.remove('hidden');
+            q('expandBtn').textContent = isExpanded ? 'Collapse' : 'Expand transcript';
+          } else {
+            q('expandBtn').classList.add('hidden');
+          }
+          q('transcriptText').classList.toggle('line-clamp-2', !isExpanded);
+        }
+        syncTranscriptUI();
+
+        if (rec.driveUrl) {
+          q('statusBox').classList.remove('hidden');
+          q('statusBox').textContent = 'Inserted in Doc! Hover link -> click "Chip".';
+        }
+
+        // Audio Events
+        audio.addEventListener('timeupdate', function () {
+          if (Number.isFinite(audio.duration) && audio.duration > 0) {
+            effectiveDuration = audio.duration;
+          }
+          q('currentTime').textContent = formatTime(audio.currentTime);
+          const pct = Math.min(100, Math.max(0, (audio.currentTime / effectiveDuration) * 100));
+          q('seekFill').style.width = pct + '%';
+        });
+
+        audio.addEventListener('ended', function () {
+          isPlaying = false;
+          playIcon.classList.remove('hidden');
+          pauseIcon.classList.add('hidden');
+          q('currentTime').textContent = '00:00';
+          q('seekFill').style.width = '0%';
+        });
+
+        q('play').addEventListener('click', function () {
+          if (isPlaying) {
+            audio.pause();
+            isPlaying = false;
+            playIcon.classList.remove('hidden');
+            pauseIcon.classList.add('hidden');
+          } else {
+            audio.play().then(function () {
+              isPlaying = true;
+              playIcon.classList.add('hidden');
+              pauseIcon.classList.remove('hidden');
+            }).catch(function () {});
+          }
+        });
+
+        q('seekBar').addEventListener('click', function (e) {
+          const rect = q('seekBar').getBoundingClientRect();
+          const clickX = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+          const target = (clickX / rect.width) * effectiveDuration;
+          if (Number.isFinite(target)) {
+            audio.currentTime = target;
+            q('currentTime').textContent = formatTime(target);
+          }
+        });
+
+        q('speedBtn').addEventListener('click', function () {
+          const rates = [1, 1.25, 1.5, 2];
+          playbackRate = rates[(rates.indexOf(playbackRate) + 1) % rates.length];
+          audio.playbackRate = playbackRate;
+          q('speedBtn').textContent = playbackRate + 'x';
+        });
+
+        q('expandBtn').addEventListener('click', function () {
+          isExpanded = !isExpanded;
+          syncTranscriptUI();
+        });
+
+        // Inline Edit
+        q('editBtn').addEventListener('click', function () {
+          q('titleEdit').value = rec.title;
+          q('transcriptEdit').value = rec.transcript;
+          q('titleDisplay').classList.add('hidden');
+          q('titleEdit').classList.remove('hidden');
+          q('transcriptView').classList.add('hidden');
+          q('editPanel').classList.remove('hidden');
+          q('editBtn').classList.add('hidden');
+        });
+
+        q('cancelEdit').addEventListener('click', function () {
+          q('titleDisplay').classList.remove('hidden');
+          q('titleEdit').classList.add('hidden');
+          q('transcriptView').classList.remove('hidden');
+          q('editPanel').classList.add('hidden');
+          q('editBtn').classList.remove('hidden');
+        });
+
+        q('saveEdit').addEventListener('click', function () {
+          rec.title = sanitizeText(q('titleEdit').value, MAX_TITLE_LENGTH).trim() || rec.title;
+          rec.transcript = sanitizeText(q('transcriptEdit').value, MAX_TRANSCRIPT_LENGTH).trim() || 'No transcript captured.';
+          q('titleDisplay').textContent = rec.title;
+          q('titleDisplay').title = rec.title;
+          syncTranscriptUI();
+          q('cancelEdit').click();
+        });
+
+        // Inline Delete Confirmation (Zero confirm() modals)
+        q('deleteBtn').addEventListener('click', function () {
+          q('deleteBtn').classList.add('hidden');
+          q('confirmBox').classList.remove('hidden');
+          q('confirmBox').classList.add('flex');
+        });
+
+        q('cancelDelete').addEventListener('click', function () {
+          q('confirmBox').classList.add('hidden');
+          q('confirmBox').classList.remove('flex');
+          q('deleteBtn').classList.remove('hidden');
+        });
+
+        q('confirmDelete').addEventListener('click', function () {
+          audio.pause();
+          if (rec.url) {
+            URL.revokeObjectURL(rec.url);
+            objectUrls.delete(rec.url);
+          }
+          recordings = recordings.filter((item) => item.id !== rec.id);
+          renderRecordingsList();
+        });
+
+        // Copy & Downloads
+        q('copyBtn').addEventListener('click', function () {
+          const textToCopy = rec.driveUrl ? rec.driveUrl + '\n' + rec.transcript : rec.transcript;
+          copyToClipboard(textToCopy, function () {
+            q('copyBtn').textContent = 'Copied!';
+            setTimeout(function () { q('copyBtn').textContent = 'Copy'; }, 1600);
+          });
+        });
+
+        q('dlAudioBtn').addEventListener('click', function () {
+          const a = document.createElement('a');
+          a.href = rec.url;
+          a.download = toSafeFilename(rec.title) + '.' + (rec.ext || 'webm');
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        });
+
+        q('dlTxtBtn').addEventListener('click', function () {
+          const lines = [
+            rec.title,
+            'Recorded: ' + rec.timestamp + ' | Duration: ' + formatTime(effectiveDuration),
+            rec.driveUrl ? 'Drive Link: ' + rec.driveUrl : null,
+            '',
+            rec.transcript,
+            ''
+          ].filter(function (l) { return l !== null; }).join('\n');
+
+          const txtBlob = new Blob([lines], { type: 'text/plain;charset=utf-8' });
+          const txtUrl = URL.createObjectURL(txtBlob);
+          const a = document.createElement('a');
+          a.href = txtUrl;
+          a.download = toSafeFilename(rec.title) + '_transcript.txt';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(txtUrl);
+        });
+
+        // Direct Google Drive Upload + Google Doc Insertion (`google.script.run` or Sidebar postMessage Relay)
+        q('insertDocBtn').addEventListener('click', async function () {
+          if (!isAppsScript && !hasOpenerBridge) return;
+          const btn = q('insertDocBtn');
+          btn.disabled = true;
+          btn.textContent = 'Sending to Doc...';
+          q('statusBox').classList.add('hidden');
+
+          try {
+            const base64Data = await blobToBase64(rec.blob);
+            const payload = {
+              base64Data: base64Data,
+              filename: toSafeFilename(rec.title) + '.' + (rec.ext || 'webm'),
+              mimeType: rec.mimeType || 'audio/webm',
+              title: rec.title,
+              transcript: rec.transcript,
+              includeTranscript: rec.transcript !== 'No transcript captured.',
+              shareWithLink: Boolean(el.shareDomainCheckbox.checked),
+              docId: appContext.docId || ''
+            };
+
+            if (hasOpenerBridge && window.opener) {
+              const requestId = String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7);
+              pendingRelayCallbacks.set(requestId, function (result) {
+                btn.disabled = false;
+                btn.textContent = 'Send to Google Doc';
+                q('statusBox').classList.remove('hidden');
+                if (result && result.ok) {
+                  if (result.url) rec.driveUrl = result.url;
+                  q('statusBox').textContent = 'Inserted in Doc! Hover link -> click "Chip".';
+                } else {
+                  q('statusBox').textContent = (result && result.error) || 'Sidebar relay failed.';
+                }
+              });
+              window.opener.postMessage({ type: 'CARBON_INSERT_NOTE', requestId: requestId, payload: payload }, '*');
+              return;
+            }
+
+            window.google.script.run
+              .withSuccessHandler(function (res) {
+                btn.disabled = false;
+                btn.textContent = 'Send to Google Doc';
+                if (res && res.url) rec.driveUrl = res.url;
+                q('statusBox').classList.remove('hidden');
+                q('statusBox').textContent = 'Inserted in Doc! Hover link -> click "Chip".';
+              })
+              .withFailureHandler(function (err) {
+                btn.disabled = false;
+                btn.textContent = 'Send to Google Doc';
+                q('statusBox').classList.remove('hidden');
+                q('statusBox').textContent = (err && err.message) || 'Drive upload failed.';
+              })
+              .uploadAndInsertAudioNote(payload);
+          } catch (err) {
+            btn.disabled = false;
+            btn.textContent = 'Send to Google Doc';
+            q('statusBox').classList.remove('hidden');
+            q('statusBox').textContent = 'Encoding failed.';
+          }
+        });
+
+        return article;
+      }
+
+      // --- 6. Event Listeners ---
+      el.btnRetryMic.addEventListener('click', requestMicPermission);
+      el.btnOpenSetupFromGate.addEventListener('click', showWorkspaceWithoutMicAndOpenSetup);
+
+      el.btnToggleSetup.addEventListener('click', function () {
+        el.setupDrawer.classList.toggle('hidden');
+      });
+      el.btnCloseSetup.addEventListener('click', function () {
+        el.setupDrawer.classList.add('hidden');
+      });
+
+      document.querySelectorAll('.setup-tab').forEach(function (tabBtn) {
+        tabBtn.addEventListener('click', function () {
+          const target = tabBtn.getAttribute('data-tab');
+          document.querySelectorAll('.setup-tab').forEach(function (b) {
+            const active = b.getAttribute('data-tab') === target;
+            b.className = active
+              ? 'setup-tab px-2.5 py-1 rounded-md text-[11px] font-medium bg-zinc-100 text-zinc-900 transition-colors'
+              : 'setup-tab px-2.5 py-1 rounded-md text-[11px] font-medium text-zinc-400 hover:text-zinc-200 transition-colors';
+          });
+          el.tabSteps.classList.toggle('hidden', target !== 'steps');
+          el.tabCodeGs.classList.toggle('hidden', target !== 'codegs');
+        });
+      });
+
+      el.btnCopyCodeGs.addEventListener('click', function () {
+        copyToClipboard(PERSONAL_CODE_GS, function () {
+          el.copyCodeGsLabel.textContent = 'Copied!';
+          setTimeout(function () { el.copyCodeGsLabel.textContent = 'Copy Code.gs'; }, 1600);
+        });
+      });
+
+      el.btnDismissError.addEventListener('click', hideError);
+
+      el.titleInput.addEventListener('input', function () {
+        const clean = sanitizeText(el.titleInput.value, MAX_TITLE_LENGTH);
+        if (el.titleInput.value !== clean) el.titleInput.value = clean;
+        syncRecorderControlsUI();
+      });
+
+      el.titleInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !isRecording && el.titleInput.value.trim().length > 0) {
+          e.preventDefault();
+          startRecording();
+        }
+      });
+
+      el.btnRecordToggle.addEventListener('click', function () {
+        if (isRecording) stopRecording();
+        else startRecording();
+      });
+
+      el.btnPauseToggle.addEventListener('click', togglePause);
+
+      window.addEventListener('beforeunload', function () {
+        if (activeStream) activeStream.getTracks().forEach((t) => t.stop());
+        objectUrls.forEach((u) => URL.revokeObjectURL(u));
+        objectUrls.clear();
+      });
+
+      // --- Boot ---
+      if (isAppsScript && isInIframe) {
+        initDocsSidebarHub();
+      } else {
+        configureRecorderHeader();
+        initSpeechRecognition();
+        requestMicPermission();
+      }
+    })();
+  </script>
+</body>
+</html>
