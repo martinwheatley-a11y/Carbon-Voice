@@ -48,7 +48,7 @@
       <div class="space-y-1">
         <h2 class="text-sm font-semibold tracking-tight">Initializing Audio</h2>
         <p class="text-zinc-500 text-xs leading-relaxed">
-          Allow microphone permission in your browser prompt to open Carbon Voice.
+          Allow microphone access in your browser prompt to open Carbon Voice.
         </p>
       </div>
     </div>
@@ -64,15 +64,12 @@
       <div class="space-y-1.5">
         <h2 class="text-sm font-semibold tracking-tight">Microphone Restricted</h2>
         <p id="gateErrorText" class="text-zinc-500 text-xs leading-relaxed">
-          Microphone access was blocked by the browser or parent iframe.
+          Microphone access was blocked by the browser. Allow microphone access in the address bar and try again.
         </p>
       </div>
       <div class="flex flex-col gap-2">
         <button id="btnRetryMic" type="button" class="w-full py-2 px-3 bg-zinc-900 text-white rounded-lg text-xs font-medium hover:bg-zinc-800 transition-colors flex items-center justify-center gap-1.5">
           <span>Retry Microphone</span>
-        </button>
-        <button id="btnOpenSetupFromGate" type="button" class="w-full py-1.5 px-3 bg-white border border-zinc-200 text-zinc-600 rounded-lg text-xs font-medium hover:bg-zinc-50 transition-colors">
-          View Audio Comments Apps Script Setup
         </button>
       </div>
     </div>
@@ -294,37 +291,6 @@
         </button>
       </div>
     </section>
-
-    <!-- =================================================================== -->
-    <!-- FLOATING MIC RELAY SETTINGS                                         -->
-    <!-- =================================================================== -->
-    <section class="bg-white border border-zinc-200 rounded-2xl p-3 space-y-2 shadow-sm">
-      <button id="btnToggleRelayConfig" type="button" class="w-full flex items-center justify-between text-left text-xs font-medium text-zinc-700">
-        <span>GitHub Pages Mic URL</span>
-        <span id="relayToggleChevron" class="text-zinc-400 font-mono text-[10px]">Configure</span>
-      </button>
-
-      <div id="relayConfigBody" class="hidden pt-1.5 space-y-2 border-t border-zinc-100">
-        <div class="flex gap-1.5">
-          <input
-            id="externalRecorderUrlInput"
-            type="url"
-            placeholder="https://username.github.io/carbon-voice/"
-            class="flex-1 min-w-0 text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-zinc-900"
-          />
-          <button id="btnSaveExternalUrl" type="button" class="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-lg text-xs font-medium shrink-0">
-            Save
-          </button>
-        </div>
-        <button
-          id="btnLaunchExternalPopup"
-          type="button"
-          class="w-full py-2 px-3 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-        >
-          <span>Launch Floating Mic Window</span>
-        </button>
-      </div>
-    </section>
   </aside>
 
   <!-- ===================================================================== -->
@@ -355,62 +321,7 @@
             </p>
           </div>
         </div>
-
-        <div class="flex items-center gap-1.5">
-          <button id="btnToggleSetup" type="button" class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
-            <svg class="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="4 17 10 11 4 5"></polyline>
-              <line x1="12" x2="20" y1="19" y2="19"></line>
-            </svg>
-            <span>No-SDK Setup</span>
-          </button>
-        </div>
       </header>
-
-      <!-- ================================================================= -->
-      <!-- COLLAPSIBLE APPS SCRIPT SETUP DRAWER                              -->
-      <!-- ================================================================= -->
-      <section id="setupDrawer" class="hidden bg-zinc-900 text-zinc-100 rounded-2xl p-4 border border-zinc-800 space-y-3 text-xs">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <h2 class="text-sm font-semibold text-white">Anchored Audio Comments Setup</h2>
-            <p class="text-zinc-400 text-[11px] mt-0.5">
-              Update <code class="font-mono text-zinc-200">Code.gs</code> &amp; <code class="font-mono text-zinc-200">Index.html</code> in Apps Script so recordings link to highlighted text inside the Side Panel.
-            </p>
-          </div>
-          <button id="btnCloseSetup" type="button" aria-label="Close setup drawer" class="p-1 text-zinc-400 hover:text-white rounded">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" x2="6" y1="6" y2="18"></line>
-              <line x1="6" x2="18" y1="6" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-1 bg-zinc-800/80 p-1 rounded-lg w-fit">
-          <button type="button" data-tab="steps" class="setup-tab px-2.5 py-1 rounded-md text-[11px] font-medium bg-zinc-100 text-zinc-900 transition-colors">
-            1. Workflow
-          </button>
-          <button type="button" data-tab="codegs" class="setup-tab px-2.5 py-1 rounded-md text-[11px] font-medium text-zinc-400 hover:text-zinc-200 transition-colors">
-            2. Copy Updated Code.gs
-          </button>
-        </div>
-
-        <div id="tabSteps" class="bg-zinc-950/70 border border-zinc-800 rounded-xl p-3 space-y-2 text-zinc-300 leading-relaxed">
-          <p><strong class="text-white">1. Zero Doc Body Clutter:</strong> Sending a recording from the pop-out uploads the audio to Drive and stages it at the top of the Google Docs Side Panel—nothing is injected into the student/staff document body.</p>
-          <p><strong class="text-white">2. Highlight &amp; Link:</strong> The Side Panel prompts the staff member to highlight the target words in the Doc and click <strong class="text-white">Link to Highlighted Text</strong>, binding it via a persistent Google Docs <code class="font-mono text-zinc-100">NamedRange</code> + optional soft amber highlight.</p>
-          <p><strong class="text-white">3. Click-to-Locate &amp; Play:</strong> Clicking any quote in the Side Panel highlights that exact sentence in the Doc and plays the voice feedback + transcript inline.</p>
-        </div>
-
-        <div id="tabCodeGs" class="hidden space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] text-zinc-400 font-mono">Code.gs (Anchored Audio Comments Engine)</span>
-            <button id="btnCopyCodeGs" type="button" class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-[11px] font-medium transition-colors">
-              <span id="copyCodeGsLabel">Copy Code.gs</span>
-            </button>
-          </div>
-          <pre id="codeGsBlock" class="bg-zinc-950 border border-zinc-800 rounded-xl p-3 overflow-x-auto font-mono text-[11px] text-zinc-300 max-h-60"></pre>
-        </div>
-      </section>
 
       <!-- Inline Error Banner -->
       <div id="errorBanner" class="hidden bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-xl items-center justify-between gap-2 text-xs">
@@ -469,8 +380,7 @@
               class="hidden items-center justify-center w-10 h-10 rounded-xl bg-white border border-zinc-200 text-zinc-800 hover:bg-zinc-100 transition-colors active:scale-95"
             >
               <svg id="iconPause" class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                <rect x="6" y="4" width="4" height="16" rx="1"></rect>
-                <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+                <rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect>
               </svg>
               <svg id="iconResume" class="hidden w-3.5 h-3.5 fill-current ml-0.5" viewBox="0 0 24 24">
                 <polygon points="6 4 20 12 6 20 6 4"></polygon>
@@ -554,332 +464,13 @@
     (function () {
       'use strict';
 
+      const DEFAULT_RECORDER_URL = 'https://martinwheatley41-y.github.io/CarbonVoice/';
       const MAX_TITLE_LENGTH = 120;
       const MAX_TRANSCRIPT_LENGTH = 20000;
       const MAX_PROP_TRANSCRIPT_LENGTH = 3200;
       const MAX_RECORDING_SECONDS = 900;
       const MAX_UPLOAD_BYTES = 18 * 1024 * 1024;
       const VOICE_BITS_PER_SECOND = 32000;
-
-      const PERSONAL_CODE_GS = [
-        '/**',
-        ' * Carbon Voice Comments — Anchored Side-Panel Audio Comments for Google Docs',
-        ' * Uploads audio to Drive & links comments to highlighted text via NamedRanges',
-        ' * without inserting chips or transcripts into the document body.',
-        ' */',
-        'var COMMENT_PROP_PREFIX = "CA_COMMENT_";',
-        'var HIGHLIGHT_HEX = "#FEF3C7";',
-        '',
-        'function onInstall(e) {',
-        '  onOpen(e);',
-        '}',
-        '',
-        'function onOpen(e) {',
-        '  DocumentApp.getUi()',
-        '    .createAddonMenu()',
-        '    .addItem("Open Audio Comments", "showRecorderSidebar")',
-        '    .addToUi();',
-        '}',
-        '',
-        'function showRecorderSidebar() {',
-        '  var html = HtmlService.createHtmlOutputFromFile("Index")',
-        '    .setTitle("Audio Comments")',
-        '    .setWidth(320);',
-        '  DocumentApp.getUi().showSidebar(html);',
-        '}',
-        '',
-        'function getSidebarContext() {',
-        '  var ctx = { docId: "", docTitle: "", externalRecorderUrl: "" };',
-        '  try {',
-        '    var doc = DocumentApp.getActiveDocument();',
-        '    if (doc) { ctx.docId = doc.getId(); ctx.docTitle = doc.getName(); }',
-        '  } catch (e) {}',
-        '  try {',
-        '    ctx.externalRecorderUrl = PropertiesService.getUserProperties().getProperty("EXTERNAL_RECORDER_URL") || "";',
-        '  } catch (e) {}',
-        '  return ctx;',
-        '}',
-        '',
-        'function saveExternalRecorderUrl(url) {',
-        '  var clean = String(url || "").trim();',
-        '  if (clean && !/^https:\\/\\//i.test(clean) && !/^http:\\/\\/localhost/i.test(clean)) {',
-        '    throw new Error("URL must start with https:// or http://localhost");',
-        '  }',
-        '  PropertiesService.getUserProperties().setProperty("EXTERNAL_RECORDER_URL", clean);',
-        '  return { saved: clean };',
-        '}',
-        '',
-        'function stageAudioFileInDrive(payload) {',
-        '  if (!payload || !payload.base64Data) throw new Error("Missing audio payload.");',
-        '  var safeName = String(payload.filename || "voice_comment.webm").replace(/[^a-zA-Z0-9._-]/g, "_");',
-        '  var mimeType = String(payload.mimeType || "audio/webm").split(";")[0];',
-        '  var blob = Utilities.newBlob(Utilities.base64Decode(payload.base64Data), mimeType, safeName);',
-        '',
-        '  var file = DriveApp.createFile(blob);',
-        '  if (payload.transcript) file.setDescription(String(payload.transcript));',
-        '  if (payload.shareWithLink) {',
-        '    try {',
-        '      file.setSharing(DriveApp.Access.DOMAIN_WITH_LINK, DriveApp.Permission.VIEW);',
-        '    } catch (e) {',
-        '      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);',
-        '    }',
-        '  }',
-        '  var author = "";',
-        '  try { author = Session.getActiveUser().getEmail() || ""; } catch (e) {}',
-        '  return {',
-        '    fileId: file.getId(),',
-        '    url: file.getUrl(),',
-        '    title: String(payload.title || safeName),',
-        '    transcript: String(payload.transcript || ""),',
-        '    author: author',
-        '  };',
-        '}',
-        '',
-        'function applyHighlightToRange_(range, color) {',
-        '  if (!range) return;',
-        '  var elems = range.getRangeElements();',
-        '  for (var i = 0; i < elems.length; i++) {',
-        '    var re = elems[i];',
-        '    var el = re.getElement();',
-        '    try {',
-        '      if (el.getType() === DocumentApp.ElementType.TEXT) {',
-        '        var t = el.asText();',
-        '        if (re.isPartial()) {',
-        '          t.setBackgroundColor(re.getStartOffset(), re.getEndOffsetInclusive(), color);',
-        '        } else {',
-        '          t.setBackgroundColor(color);',
-        '        }',
-        '      } else if (el.editAsText) {',
-        '        el.editAsText().setBackgroundColor(color);',
-        '      }',
-        '    } catch (e) {}',
-        '  }',
-        '}',
-        '',
-        'function extractRangeQuote_(range) {',
-        '  if (!range) return "";',
-        '  var parts = [];',
-        '  var elems = range.getRangeElements();',
-        '  for (var i = 0; i < elems.length; i++) {',
-        '    var re = elems[i];',
-        '    var el = re.getElement();',
-        '    try {',
-        '      if (el.getType() === DocumentApp.ElementType.TEXT) {',
-        '        var full = el.asText().getText();',
-        '        if (re.isPartial()) {',
-        '          parts.push(full.substring(re.getStartOffset(), re.getEndOffsetInclusive() + 1));',
-        '        } else {',
-        '          parts.push(full);',
-        '        }',
-        '      } else if (el.asText) {',
-        '        parts.push(el.asText().getText());',
-        '      }',
-        '    } catch (e) {}',
-        '  }',
-        '  return parts.join(" ").replace(/\\s+/g, " ").trim().slice(0, 180);',
-        '}',
-        '',
-        'function linkStagedAudioComment(data) {',
-        '  var doc = DocumentApp.getActiveDocument();',
-        '  if (!doc) throw new Error("No active Google Doc found.");',
-        '',
-        '  var requireSelection = Boolean(data && data.requireSelection);',
-        '  var applyHighlight = Boolean(data && data.applyHighlight);',
-        '  var selection = doc.getSelection();',
-        '',
-        '  if (requireSelection && !selection) {',
-        '    return { ok: false, code: "NO_SELECTION", message: "Highlight the words in your Google Doc first, then click Link." };',
-        '  }',
-        '',
-        '  var quote = "";',
-        '  var namedRangeId = "";',
-        '  var didHighlight = false;',
-        '',
-        '  if (selection) {',
-        '    quote = extractRangeQuote_(selection);',
-        '    if (requireSelection && !quote) {',
-        '      return { ok: false, code: "EMPTY_SELECTION", message: "Please highlight at least one word in the document text." };',
-        '    }',
-        '    var nr = doc.addNamedRange("CARBON_AUDIO_" + Date.now(), selection);',
-        '    namedRangeId = nr.getId();',
-        '    if (applyHighlight) {',
-        '      applyHighlightToRange_(selection, HIGHLIGHT_HEX);',
-        '      didHighlight = true;',
-        '    }',
-        '  }',
-        '',
-        '  var commentId = String(Date.now()) + "_" + Math.random().toString(36).slice(2, 6);',
-        '  var author = data.author || "";',
-        '  if (!author) {',
-        '    try { author = Session.getActiveUser().getEmail() || ""; } catch (e) {}',
-        '  }',
-        '',
-        '  var record = {',
-        '    id: commentId,',
-        '    fileId: String(data.fileId || ""),',
-        '    url: String(data.url || ""),',
-        '    title: String(data.title || "Audio Comment").slice(0, 120),',
-        '    transcript: String(data.transcript || "").slice(0, 3200),',
-        '    quote: quote,',
-        '    namedRangeId: namedRangeId,',
-        '    highlighted: didHighlight,',
-        '    author: author ? author.split("@")[0] : "Staff",',
-        '    createdAt: new Date().toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })',
-        '  };',
-        '',
-        '  PropertiesService.getDocumentProperties().setProperty(COMMENT_PROP_PREFIX + commentId, JSON.stringify(record));',
-        '  return { ok: true, comment: record };',
-        '}',
-        '',
-        'function getRangeSortPosition_(range, body) {',
-        '  try {',
-        '    var elems = range.getRangeElements();',
-        '    if (!elems || !elems.length) return [999999, 0];',
-        '    var re = elems[0];',
-        '    var offset = re.isPartial() ? re.getStartOffset() : 0;',
-        '    var cur = re.getElement();',
-        '    while (cur && cur.getParent() && cur.getParent().getType() !== DocumentApp.ElementType.BODY_SECTION) {',
-        '      cur = cur.getParent();',
-        '    }',
-        '    if (cur && cur.getParent() && cur.getParent().getType() === DocumentApp.ElementType.BODY_SECTION) {',
-        '      return [body.getChildIndex(cur), offset];',
-        '    }',
-        '  } catch (e) {}',
-        '  return [999999, 0];',
-        '}',
-        '',
-        'function rangeContainsElement_(range, targetEl, targetOffset) {',
-        '  if (!range || !targetEl) return false;',
-        '  var elems = range.getRangeElements();',
-        '  for (var i = 0; i < elems.length; i++) {',
-        '    var re = elems[i];',
-        '    var el = re.getElement();',
-        '    if (el.getType() === targetEl.getType() && el.asText && targetEl.asText) {',
-        '      try {',
-        '        if (el.asText().getText() === targetEl.asText().getText()) {',
-        '          if (!re.isPartial()) return true;',
-        '          if (targetOffset >= re.getStartOffset() && targetOffset <= re.getEndOffsetInclusive() + 1) return true;',
-        '        }',
-        '      } catch (e) {}',
-        '    }',
-        '  }',
-        '  return false;',
-        '}',
-        '',
-        'function listDocAudioComments() {',
-        '  var doc = DocumentApp.getActiveDocument();',
-        '  if (!doc) return { comments: [], activeCommentId: "" };',
-        '  var body = doc.getBody();',
-        '  var props = PropertiesService.getDocumentProperties().getProperties();',
-        '  var items = [];',
-        '',
-        '  var cursorEl = null;',
-        '  var cursorOffset = 0;',
-        '  try {',
-        '    var cur = doc.getCursor();',
-        '    if (cur) { cursorEl = cur.getElement(); cursorOffset = cur.getOffset(); }',
-        '    else {',
-        '      var sel = doc.getSelection();',
-        '      if (sel && sel.getRangeElements().length) {',
-        '        var sre = sel.getRangeElements()[0];',
-        '        cursorEl = sre.getElement();',
-        '        cursorOffset = sre.isPartial() ? sre.getStartOffset() : 0;',
-        '      }',
-        '    }',
-        '  } catch (e) {}',
-        '',
-        '  var activeCommentId = "";',
-        '',
-        '  for (var key in props) {',
-        '    if (key.indexOf(COMMENT_PROP_PREFIX) === 0) {',
-        '      try {',
-        '        var c = JSON.parse(props[key]);',
-        '        var pos = [999999, 0];',
-        '        var anchorAlive = false;',
-        '        if (c.namedRangeId) {',
-        '          var nr = doc.getNamedRangeById(c.namedRangeId);',
-        '          if (nr) {',
-        '            var r = nr.getRange();',
-        '            var currentQuote = extractRangeQuote_(r);',
-        '            if (currentQuote) {',
-        '              anchorAlive = true;',
-        '              c.quote = currentQuote;',
-        '              pos = getRangeSortPosition_(r, body);',
-        '              if (!activeCommentId && cursorEl && rangeContainsElement_(r, cursorEl, cursorOffset)) {',
-        '                activeCommentId = c.id;',
-        '              }',
-        '            }',
-        '          }',
-        '        }',
-        '        c.anchorAlive = anchorAlive;',
-        '        c._sortMain = pos[0];',
-        '        c._sortSub = pos[1];',
-        '        items.push(c);',
-        '      } catch (e) {}',
-        '    }',
-        '  }',
-        '',
-        '  items.sort(function(a, b) {',
-        '    if (a._sortMain !== b._sortMain) return a._sortMain - b._sortMain;',
-        '    if (a._sortSub !== b._sortSub) return a._sortSub - b._sortSub;',
-        '    return String(a.id).localeCompare(String(b.id));',
-        '  });',
-        '',
-        '  return { comments: items, activeCommentId: activeCommentId };',
-        '}',
-        '',
-        'function selectAudioCommentInDoc(commentId) {',
-        '  var doc = DocumentApp.getActiveDocument();',
-        '  if (!doc || !commentId) return { ok: false };',
-        '  var raw = PropertiesService.getDocumentProperties().getProperty(COMMENT_PROP_PREFIX + commentId);',
-        '  if (!raw) return { ok: false };',
-        '  var c = JSON.parse(raw);',
-        '  if (!c.namedRangeId) return { ok: false };',
-        '  var nr = doc.getNamedRangeById(c.namedRangeId);',
-        '  if (!nr) return { ok: false };',
-        '  doc.setSelection(nr.getRange());',
-        '  return { ok: true };',
-        '}',
-        '',
-        'function deleteAudioComment(commentId) {',
-        '  var doc = DocumentApp.getActiveDocument();',
-        '  var store = PropertiesService.getDocumentProperties();',
-        '  var key = COMMENT_PROP_PREFIX + commentId;',
-        '  var raw = store.getProperty(key);',
-        '  if (raw && doc) {',
-        '    try {',
-        '      var c = JSON.parse(raw);',
-        '      if (c.namedRangeId) {',
-        '        var nr = doc.getNamedRangeById(c.namedRangeId);',
-        '        if (nr) {',
-        '          if (c.highlighted) applyHighlightToRange_(nr.getRange(), null);',
-        '          nr.remove();',
-        '        }',
-        '      }',
-        '    } catch (e) {}',
-        '  }',
-        '  store.deleteProperty(key);',
-        '  return { ok: true };',
-        '}',
-        '',
-        'function getAudioNoteBase64(fileId) {',
-        '  if (!fileId) throw new Error("Missing Drive file ID.");',
-        '  var file = DriveApp.getFileById(String(fileId));',
-        '  if (file.getSize() > 20 * 1024 * 1024) {',
-        '    throw new Error("Audio file exceeds 20 MB inline streaming limit.");',
-        '  }',
-        '  var blob = file.getBlob();',
-        '  var mime = file.getMimeType() || "audio/webm";',
-        '  if (mime === "video/webm") mime = "audio/webm";',
-        '  return {',
-        '    fileId: file.getId(),',
-        '    name: file.getName(),',
-        '    mimeType: mime,',
-        '    description: file.getDescription() || "",',
-        '    base64Data: Utilities.base64Encode(blob.getBytes())',
-        '  };',
-        '}'
-      ].join('\n');
 
       // --- Environment Detection ---
       const isAppsScript = Boolean(window.google && window.google.script && window.google.script.run);
@@ -893,7 +484,7 @@
       const appContext = {
         docId: '',
         docTitle: '',
-        externalRecorderUrl: ''
+        externalRecorderUrl: DEFAULT_RECORDER_URL
       };
 
       const pendingRelayCallbacks = new Map();
@@ -941,7 +532,6 @@
         gateBlocked: document.getElementById('gateBlocked'),
         gateErrorText: document.getElementById('gateErrorText'),
         btnRetryMic: document.getElementById('btnRetryMic'),
-        btnOpenSetupFromGate: document.getElementById('btnOpenSetupFromGate'),
 
         docsSidebarHub: document.getElementById('docsSidebarHub'),
         sidebarDocName: document.getElementById('sidebarDocName'),
@@ -986,24 +576,9 @@
         btnSidebarUpload: document.getElementById('btnSidebarUpload'),
         sidebarStatusBanner: document.getElementById('sidebarStatusBanner'),
 
-        btnToggleRelayConfig: document.getElementById('btnToggleRelayConfig'),
-        relayToggleChevron: document.getElementById('relayToggleChevron'),
-        relayConfigBody: document.getElementById('relayConfigBody'),
-        externalRecorderUrlInput: document.getElementById('externalRecorderUrlInput'),
-        btnSaveExternalUrl: document.getElementById('btnSaveExternalUrl'),
-        btnLaunchExternalPopup: document.getElementById('btnLaunchExternalPopup'),
-
         appWorkspace: document.getElementById('appWorkspace'),
         envBadge: document.getElementById('envBadge'),
         linkedDocSubtitle: document.getElementById('linkedDocSubtitle'),
-        btnToggleSetup: document.getElementById('btnToggleSetup'),
-        setupDrawer: document.getElementById('setupDrawer'),
-        btnCloseSetup: document.getElementById('btnCloseSetup'),
-        tabSteps: document.getElementById('tabSteps'),
-        tabCodeGs: document.getElementById('tabCodeGs'),
-        codeGsBlock: document.getElementById('codeGsBlock'),
-        btnCopyCodeGs: document.getElementById('btnCopyCodeGs'),
-        copyCodeGsLabel: document.getElementById('copyCodeGsLabel'),
 
         errorBanner: document.getElementById('errorBanner'),
         errorBannerText: document.getElementById('errorBannerText'),
@@ -1038,8 +613,6 @@
         recordingsHint: document.getElementById('recordingsHint'),
         recordingsList: document.getElementById('recordingsList')
       };
-
-      el.codeGsBlock.textContent = PERSONAL_CODE_GS;
 
       // --- Helpers ---
       function sanitizeText(val, maxLen) {
@@ -1261,7 +834,7 @@
           el.docAudioChipsList.innerHTML =
             '<div class="text-center py-4 px-2.5 bg-zinc-50 rounded-xl border border-zinc-200/70 space-y-1">' +
             '<p class="text-xs font-medium text-zinc-700">No audio comments yet</p>' +
-            '<p class="text-[11px] text-zinc-400 leading-snug">Click <strong>+ Record</strong> above, beam a voice note here, then highlight text in your Doc to attach it.</p>' +
+            '<p class="text-[11px] text-zinc-400 leading-snug">Click <strong>+ Record</strong> above, send a voice note here, then highlight text in your Doc to attach it.</p>' +
             '</div>';
           return;
         }
@@ -1405,7 +978,7 @@
             el.iconScanSpinner.classList.remove('animate-spin');
             el.docAudioChipsList.innerHTML =
               '<p class="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2.5">' +
-              'Paste the updated <strong>Code.gs</strong> into Apps Script and save to activate Side-Panel Audio Comments.' +
+              'Could not load audio comments. Click the refresh icon above to retry.' +
               '</p>';
           })
           .listDocAudioComments();
@@ -1469,21 +1042,14 @@
       }
 
       function launchFloatingPopup() {
-        const rawUrl = el.externalRecorderUrlInput.value.trim() || appContext.externalRecorderUrl;
-        if (!rawUrl) {
-          el.relayConfigBody.classList.remove('hidden');
-          el.relayToggleChevron.textContent = 'Hide';
-          el.externalRecorderUrlInput.focus();
-          setSidebarStatus('Paste & save your GitHub Pages URL below once to launch the pop-out mic.', true);
-          return;
-        }
+        const rawUrl = (appContext.externalRecorderUrl || DEFAULT_RECORDER_URL).trim();
         try {
           const u = new URL(rawUrl);
           if (appContext.docTitle) u.searchParams.set('docTitle', appContext.docTitle);
           if (appContext.docId) u.searchParams.set('docId', appContext.docId);
           window.open(u.toString(), 'CarbonVoicePopup', 'width=420,height=660');
         } catch (e) {
-          setSidebarStatus('Enter a valid https:// URL.', true);
+          setSidebarStatus('Could not launch floating recorder window.', true);
         }
       }
 
@@ -1492,6 +1058,7 @@
         el.appWorkspace.classList.add('hidden');
         el.docsSidebarHub.classList.remove('hidden');
 
+        // Audio player listeners
         sidebarAudio.addEventListener('play', function () { syncSidebarPlayIcons(true); });
         sidebarAudio.addEventListener('pause', function () { syncSidebarPlayIcons(false); });
         sidebarAudio.addEventListener('ended', function () {
@@ -1528,6 +1095,7 @@
           sidebarAudio.currentTime = (clickX / rect.width) * sidebarAudio.duration;
         });
 
+        // Staging Card Actions
         el.btnConfirmLinkSelection.addEventListener('click', function () {
           linkCurrentPendingItem(true);
         });
@@ -1560,6 +1128,7 @@
 
         el.btnLaunchQuickMic.addEventListener('click', launchFloatingPopup);
 
+        // Load Sidebar Context + Existing Audio Comments
         window.google.script.run
           .withSuccessHandler(function (ctx) {
             if (ctx) {
@@ -1570,7 +1139,6 @@
               }
               if (ctx.externalRecorderUrl) {
                 appContext.externalRecorderUrl = ctx.externalRecorderUrl;
-                el.externalRecorderUrlInput.value = ctx.externalRecorderUrl;
               }
             }
             refreshDocComments(false);
@@ -1580,6 +1148,7 @@
           })
           .getSidebarContext();
 
+        // Local File Upload -> Stages in Side Panel
         el.btnToggleDropSection.addEventListener('click', function () {
           const hidden = el.dropSectionBody.classList.toggle('hidden');
           el.dropToggleChevron.textContent = hidden ? 'Show' : 'Hide';
@@ -1661,32 +1230,12 @@
           }
         });
 
-        el.btnToggleRelayConfig.addEventListener('click', function () {
-          const isHidden = el.relayConfigBody.classList.toggle('hidden');
-          el.relayToggleChevron.textContent = isHidden ? 'Configure' : 'Hide';
-        });
-
-        el.btnSaveExternalUrl.addEventListener('click', function () {
-          const raw = el.externalRecorderUrlInput.value.trim();
-          window.google.script.run
-            .withSuccessHandler(function (res) {
-              appContext.externalRecorderUrl = res.saved || '';
-              el.btnSaveExternalUrl.textContent = 'Saved!';
-              setTimeout(function () { el.btnSaveExternalUrl.textContent = 'Save'; }, 1500);
-            })
-            .withFailureHandler(function (err) {
-              setSidebarStatus((err && err.message) || 'Invalid URL.', true);
-            })
-            .saveExternalRecorderUrl(raw);
-        });
-
-        el.btnLaunchExternalPopup.addEventListener('click', launchFloatingPopup);
-
+        // Receive Beamed Audio from Floating GitHub Pages Recorder -> Stage in Side Panel
         window.addEventListener('message', function (event) {
           if (!event.data) return;
           if (event.data.type !== 'CARBON_INSERT_NOTE' && event.data.type !== 'CARBON_STAGE_COMMENT') return;
 
-          const configured = el.externalRecorderUrlInput.value.trim() || appContext.externalRecorderUrl;
+          const configured = (appContext.externalRecorderUrl || DEFAULT_RECORDER_URL).trim();
           if (configured) {
             try {
               const allowedOrigin = new URL(configured).origin;
@@ -1734,6 +1283,7 @@
         });
       }
 
+      // Relay result listener for Floating Popup Window
       window.addEventListener('message', function (event) {
         if (!event.data || event.data.type !== 'CARBON_INSERT_RESULT') return;
         const cb = pendingRelayCallbacks.get(event.data.requestId);
@@ -1758,12 +1308,7 @@
         }
       }
 
-      function showWorkspaceWithoutMicAndOpenSetup() {
-        el.permissionGate.classList.add('hidden');
-        el.appWorkspace.classList.remove('hidden');
-        el.setupDrawer.classList.remove('hidden');
-      }
-
+      // --- 1. Microphone Permission Gate ---
       async function requestMicPermission() {
         el.gateChecking.classList.remove('hidden');
         el.gateBlocked.classList.add('hidden');
@@ -1800,6 +1345,7 @@
         el.titleInput.focus();
       }
 
+      // --- 2. Live Speech Recognition ---
       function initSpeechRecognition() {
         const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRec) {
@@ -1846,6 +1392,7 @@
         el.liveInterimText.textContent = interimTranscript ? (finalTranscript ? ' ' : '') + interimTranscript : '';
       }
 
+      // --- 3. Retina Canvas Waveform ---
       function startVisualizerLoop() {
         const canvas = el.waveformCanvas;
         const container = el.canvasContainer;
@@ -1904,6 +1451,7 @@
         render();
       }
 
+      // --- 4. Core Recording Lifecycle ---
       function syncRecorderControlsUI() {
         const cleanTitle = sanitizeText(el.titleInput.value, MAX_TITLE_LENGTH).trim();
         const canStart = cleanTitle.length > 0;
@@ -2119,6 +1667,7 @@
         syncRecorderControlsUI();
       }
 
+      // --- 5. Saved Captures Cards in Floating Recorder ---
       function renderRecordingsList() {
         el.recordingsCount.textContent = String(recordings.length);
         if (recordings.length === 0) {
@@ -2436,36 +1985,6 @@
 
       // --- 6. Event Listeners ---
       el.btnRetryMic.addEventListener('click', requestMicPermission);
-      el.btnOpenSetupFromGate.addEventListener('click', showWorkspaceWithoutMicAndOpenSetup);
-
-      el.btnToggleSetup.addEventListener('click', function () {
-        el.setupDrawer.classList.toggle('hidden');
-      });
-      el.btnCloseSetup.addEventListener('click', function () {
-        el.setupDrawer.classList.add('hidden');
-      });
-
-      document.querySelectorAll('.setup-tab').forEach(function (tabBtn) {
-        tabBtn.addEventListener('click', function () {
-          const target = tabBtn.getAttribute('data-tab');
-          document.querySelectorAll('.setup-tab').forEach(function (b) {
-            const active = b.getAttribute('data-tab') === target;
-            b.className = active
-              ? 'setup-tab px-2.5 py-1 rounded-md text-[11px] font-medium bg-zinc-100 text-zinc-900 transition-colors'
-              : 'setup-tab px-2.5 py-1 rounded-md text-[11px] font-medium text-zinc-400 hover:text-zinc-200 transition-colors';
-          });
-          el.tabSteps.classList.toggle('hidden', target !== 'steps');
-          el.tabCodeGs.classList.toggle('hidden', target !== 'codegs');
-        });
-      });
-
-      el.btnCopyCodeGs.addEventListener('click', function () {
-        copyToClipboard(PERSONAL_CODE_GS, function () {
-          el.copyCodeGsLabel.textContent = 'Copied!';
-          setTimeout(function () { el.copyCodeGsLabel.textContent = 'Copy Code.gs'; }, 1600);
-        });
-      });
-
       el.btnDismissError.addEventListener('click', hideError);
 
       el.titleInput.addEventListener('input', function () {
